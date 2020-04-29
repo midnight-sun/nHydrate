@@ -17,7 +17,7 @@ using System.Reflection;
 using System.Xml;
 using System.Security.Cryptography;
 using System.IO;
-using System.Windows.Forms;
+using Microsoft.Data.SqlClient;
 
 namespace PROJECTNAMESPACE
 {
@@ -35,8 +35,8 @@ namespace PROJECTNAMESPACE
         private GeneratedVersion _previousVersion = null;
         private static GeneratedVersion _upgradeToVersion = new GeneratedVersion("UPGRADE_VERSION");
         private InstallSetup _setup = null;
-        private System.Data.SqlClient.SqlConnection _connection;
-        private System.Data.SqlClient.SqlTransaction _transaction;
+        private SqlConnection _connection;
+        private SqlTransaction _transaction;
         private List<EmbeddedResourceName> _resourceNames = new List<EmbeddedResourceName>();
         private nHydrateDbObjectList _databaseItems = new nHydrateDbObjectList();
         private List<string> _newItems = new List<string>();
@@ -124,10 +124,8 @@ namespace PROJECTNAMESPACE
             {
                 if (settings.ModelKey != new Guid(MODELKEY) && !_setup.SuppressUI)
                 {
-                    if (System.Windows.Forms.MessageBox.Show("The database being updated was created against a different model. This may cause database versioning issues if you continue.\n\nDo you wish to continue?", "Continue?", System.Windows.Forms.MessageBoxButtons.YesNo, System.Windows.Forms.MessageBoxIcon.Warning) != System.Windows.Forms.DialogResult.Yes)
-                    {
-                        throw new Exception("Database does not match model.");
-                    }
+                    //TODO: Add way to override with parameters
+                    Console.WriteLine("The database being updated was created against a different model. This may cause database versioning issues");
                 }
             }
 
@@ -302,7 +300,7 @@ namespace PROJECTNAMESPACE
         {
             if (setup.Transaction == null || !setup.UseTransaction)
             {
-                _connection = new System.Data.SqlClient.SqlConnection(setup.ConnectionString);
+                _connection = new SqlConnection(setup.ConnectionString);
                 _connection.Open();
                 if (setup.UseTransaction)
                     _transaction = _connection.BeginTransaction(System.Data.IsolationLevel.RepeatableRead);
@@ -339,7 +337,7 @@ namespace PROJECTNAMESPACE
 
                 if (currentDbVersion > _upgradeToVersion && !_setup.SuppressUI)
                 {
-                    System.Windows.Forms.MessageBox.Show("The current database version (" + currentDbVersion.ToString() + ") is greater than the current library (" + _upgradeToVersion.ToString() + "). The upgrade will not proceed.", "Error", System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+                    Console.WriteLine($"The current database version ({currentDbVersion}) is greater than the current library ({_upgradeToVersion}). The upgrade will not proceed.");
                     return;
                 }
 
@@ -378,8 +376,9 @@ namespace PROJECTNAMESPACE
                                 {
                                     if (!_setup.SuppressUI)
                                     {
-                                        if (MessageBox.Show("The script '" + fileName + "' is part of the install but has never been applied to the database. The script version is lower than the database version so it will never be applied. Do you wish to proceed with the install?", "Script never applied", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
-                                            throw new ScriptDifferenceException("The script '" + fileName + "' has never been applied to the database and never will due to its version.");
+                                        //TODO: allow override with parameters. i.e. "Do you wish to proceed with the install?"
+                                        Console.WriteLine($"The script '{fileName}' is part of the install but has never been applied to the database. The script version is lower than the database version so it will never be applied.");
+                                        return;
                                     }
                                     else
                                     {
@@ -405,8 +404,9 @@ namespace PROJECTNAMESPACE
                             {
                                 if (!_setup.SuppressUI)
                                 {
-                                    if (MessageBox.Show("The script '" + fileName + "' was previously run on the database, but the current script is not the same. Do you wish to proceed with the install?", "Script has changed", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
-                                        throw new ScriptDifferenceException("The script '" + fileName + "' is different than the one run on the database.");
+                                    //TODO: Allow override with parameters, i.e. "Do you wish to continue"
+                                    Console.WriteLine($"The script '{fileName}' was previously run on the database, but the current script is not the same.");
+                                    return;
                                 }
                                 else
                                 {
@@ -531,10 +531,8 @@ namespace PROJECTNAMESPACE
             {
                 if (!setup.CheckOnly && !setup.SuppressUI)
                 {
-                    var F = new SqlErrorForm();
-                    F.Setup(ex, false);
-                    F.ShowDialog();
-
+                    Console.WriteLine(ex.ToString());
+                    return;
                 }
                 try
                 {
@@ -548,9 +546,8 @@ namespace PROJECTNAMESPACE
             {
                 if (!setup.CheckOnly && !setup.SuppressUI)
                 {
-                    var F = new SqlErrorForm();
-                    F.SetupGeneric(ex);
-                    F.ShowDialog();
+                    Console.WriteLine(ex.ToString());
+                    return;
                 }
                 try
                 {
@@ -1023,30 +1020,30 @@ namespace PROJECTNAMESPACE
             {
                 //Only do this in debug
 #if (DEBUG)
-				if (System.Diagnostics.Debugger.IsAttached)
-				{
-					var nOrderFile = System.IO.Path.Combine(new System.IO.FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).DirectoryName, "installer.norder");
-					//If there are no failures then ensure that there is no "norder" file
-					if (System.IO.File.Exists(nOrderFile))
-						System.IO.File.Delete(nOrderFile);
+                if (System.Diagnostics.Debugger.IsAttached)
+                {
+                    var nOrderFile = System.IO.Path.Combine(new System.IO.FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).DirectoryName, "installer.norder");
+                    //If there are no failures then ensure that there is no "norder" file
+                    if (System.IO.File.Exists(nOrderFile))
+                        System.IO.File.Delete(nOrderFile);
 
-					//On success, write the XML file with the proper order
-					try
-					{
-						var document = new System.Xml.XmlDocument();
-						document.LoadXml("<root type=\"installer\"></root>");
-						document.DocumentElement.AppendChild(document.CreateWhitespace("\r\n"));
-						foreach (var k in successOrderScripts)
-						{
-							document.DocumentElement.AddElement("key", k.ToString());
-							document.DocumentElement.AppendChild(document.CreateWhitespace("\r\n"));
-						}
-						document.Save(nOrderFile);
-					}
-					catch (Exception ex)
-					{
-					}
-				}
+                    //On success, write the XML file with the proper order
+                    try
+                    {
+                        var document = new System.Xml.XmlDocument();
+                        document.LoadXml("<root type=\"installer\"></root>");
+                        document.DocumentElement.AppendChild(document.CreateWhitespace("\r\n"));
+                        foreach (var k in successOrderScripts)
+                        {
+                            document.DocumentElement.AddElement("key", k.ToString());
+                            document.DocumentElement.AppendChild(document.CreateWhitespace("\r\n"));
+                        }
+                        document.Save(nOrderFile);
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                }
 #endif
             }
         }
@@ -1945,81 +1942,6 @@ namespace PROJECTNAMESPACE
     public static class MD5Provider
     {
         /// <summary />
-        public static byte[] ComputeHash(string input, Encoding encoding)
-        {
-            if (null == input)
-                throw new System.ArgumentNullException("input", "Unable to calculate hash over null input data");
-            if (null == encoding)
-                throw new System.ArgumentNullException("encoding", "Unable to calculate hash over a string without a default encoding. Consider using the ComputeHash(string) overload to use UTF8 Encoding");
-
-            byte[] target = encoding.GetBytes(input);
-
-            return ComputeHash(target);
-        }
-
-        /// <summary />
-        public static byte[] ComputeHash(string input)
-        {
-            return ComputeHash(input, new UTF8Encoding());
-        }
-
-        /// <summary />
-        public static string ComputeHashString(byte[] input)
-        {
-            if (null == input)
-                throw new System.ArgumentNullException("input", "Unable to calculate hash over null input data");
-
-            string retval = BitConverter.ToString(ComputeHash(input));
-            retval = retval.Replace("-", "");
-
-            return retval.ToLowerInvariant();
-        }
-
-        /// <summary />
-        public static string ComputeHashString(string input, Encoding encoding)
-        {
-            if (null == input)
-                throw new System.ArgumentNullException("input", "Unable to calculate hash over null input data");
-            if (null == encoding)
-                throw new System.ArgumentNullException("encoding", "Unable to calculate hash over a string without a default encoding. Consider using the ComputeHashString(string) overload to use UTF8 Encoding");
-
-            byte[] target = encoding.GetBytes(input);
-
-            return ComputeHashString(target);
-        }
-
-        /// <summary />
-        public static string ComputeHashString(string input)
-        {
-            return ComputeHashString(input, new UTF8Encoding());
-        }
-
-        /// <summary />
-        public static byte[] ComputeHashFromFile(string fileName)
-        {
-            using (var stream = File.OpenRead(fileName))
-            {
-                return ComputeHash(stream);
-            }
-        }
-
-        /// <summary />
-        public static byte[] ComputeHash(Stream stream)
-        {
-            byte[] buffer = new byte[8192];
-            byte[] streamBytes = new byte[stream.Length];
-            int bytesRead = stream.Read(buffer, 0, buffer.Length);
-            int totalBytes = 0;
-            while (bytesRead > 0)
-            {
-                Buffer.BlockCopy(buffer, 0, streamBytes, totalBytes, bytesRead);
-                totalBytes += bytesRead;
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
-            }
-            return ComputeHash(streamBytes);
-        }
-
-        /// <summary />
         public static byte[] ComputeHash(byte[] input)
         {
             return ComputeHash(input, 0, input.Length);
@@ -2084,11 +2006,11 @@ namespace PROJECTNAMESPACE
 
         // Performs a single block transform of MD5 for a given set of ABCD inputs
         /* If implementing your own hashing framework, be sure to set the initial ABCD correctly according to RFC 1321:
-		//    A = 0x67452301;
-		//    B = 0xefcdab89;
-		//    C = 0x98badcfe;
-		//    D = 0x10325476;
-		*/
+        //    A = 0x67452301;
+        //    B = 0xefcdab89;
+        //    C = 0x98badcfe;
+        //    D = 0x10325476;
+        */
         /// <summary />
         internal static void ComputeHashBlock(byte[] input, ref ABCDStruct ABCDValue, int ibStart)
         {
@@ -2236,6 +2158,22 @@ namespace PROJECTNAMESPACE
     /// <summary />
     internal static class Extensions
     {
+        /// <summary />
+        internal static List<string> BreakLines(this string text)
+        {
+            if (string.IsNullOrEmpty(text)) return new List<string>();
+            return text.Replace("\x01", string.Empty).Split(new[] { "\r\n" }, StringSplitOptions.None).ToList();
+        }
+
+        /// <summary />
+        internal static List<string> TrimAll(this IEnumerable<string> strArray)
+        {
+            var retval = new List<string>();
+            foreach (var s in strArray)
+                retval.Add(s.Trim().Trim(new char[] { '\t', ' ' }).Trim());
+            return retval;
+        }
+
         /// <summary />
         public static string CalculateMD5Hash(this string input)
         {

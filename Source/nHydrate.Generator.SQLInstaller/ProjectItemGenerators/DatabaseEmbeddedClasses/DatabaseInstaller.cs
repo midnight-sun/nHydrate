@@ -6,45 +6,34 @@
 //    Manual changes to this file will be overwritten if the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
-
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
 #pragma warning disable 0168
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration.Install;
-using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Text;
+using Microsoft.Data.SqlClient;
 
 namespace PROJECTNAMESPACE
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    internal enum ActionTypeConstants
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        Create,
+        /// <summary>
+        /// 
+        /// </summary>
+        Upgrade,
+    }
+
     /// <summary>
     /// The database installer class
     /// </summary>
@@ -53,7 +42,7 @@ namespace PROJECTNAMESPACE
     {
         #region Members
         private string[] PARAMKEYS_DROP = new string[] { "drop" };
-        private string[] PARAMKEYS_UPGRADE = new string[] { "upgrade" };
+        private string[] PARAMKEYS_UPGRADE = new string[] { "upgrade", "update" };
         private string[] PARAMKEYS_CREATE = new string[] { "create" };
         private string[] PARAMKEYS_MASTERDB = new string[] { "master", "masterdb" };
         private string[] PARAMKEYS_APPDB = new string[] { "applicationdb", "connectionstring" };
@@ -65,6 +54,7 @@ namespace PROJECTNAMESPACE
         private string PARAMKEYS_DBVERSION = "dbversion";
         private string PARAMKEYS_VERSIONWARN = "acceptwarnings";
         private string PARAMKEYS_SHOWSQL = "showsql";
+        private string PARAMKEYS_LOGSQL = "logsql";
         private string[] PARAMKEYS_TRAN = new string[] { "tranaction", "transaction" };
         private string PARAMKEYS_SKIPNORMALIZE = "skipnormalize";
         private string PARAMKEYS_HASH = "usehash";
@@ -106,6 +96,20 @@ namespace PROJECTNAMESPACE
                         setup.ShowSql = false;
                     else
                         throw new Exception("The /" + PARAMKEYS_SHOWSQL + " parameter must be set to 'true or false'.");
+                    paramUICount++;
+                }
+
+                if (commandParams.ContainsKey(PARAMKEYS_LOGSQL))
+                {
+                    var logFile = commandParams[PARAMKEYS_LOGSQL];
+                    if (!string.IsNullOrEmpty(logFile))
+                    {
+                        //var isValid = !string.IsNullOrEmpty(logFile) && logFile.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+                        //if (!isValid)
+                        //    throw new Exception("The /" + PARAMKEYS_LOGSQL + " parameter must have a valid file name.");
+                        if (File.Exists(logFile)) File.Delete(logFile);
+                        setup.LogFilename = logFile;
+                    }
                     paramUICount++;
                 }
 
@@ -296,7 +300,7 @@ namespace PROJECTNAMESPACE
                 }
             }
 
-            UIInstall(setup);
+            Console.WriteLine("Invalid configuration");
 
         }
 
@@ -304,11 +308,11 @@ namespace PROJECTNAMESPACE
         {
             try
             {
-                using (var con = new System.Data.SqlClient.SqlConnection(masterConnectionString))
+                using (var con = new SqlConnection(masterConnectionString))
                 {
                     con.Open();
                     var sqlCommandText = @"ALTER DATABASE [" + dbname + @"] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;DROP DATABASE [" + dbname + "]";
-                    using (var sqlCommand = new System.Data.SqlClient.SqlCommand(sqlCommandText, con))
+                    using (var sqlCommand = new SqlCommand(sqlCommandText, con))
                     {
                         sqlCommand.ExecuteNonQuery();
                     }
@@ -350,7 +354,7 @@ namespace PROJECTNAMESPACE
                     throw new Exception("A new database name was not specified.");
 
                 //The connection string and the new database name must be the same
-                var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(setup.ConnectionString);
+                var builder = new SqlConnectionStringBuilder(setup.ConnectionString);
                 if (builder.InitialCatalog.ToLower() != setup.NewDatabaseName.ToLower())
                     throw new Exception("A new database name does not match the specified connection string.");
 
@@ -512,38 +516,6 @@ namespace PROJECTNAMESPACE
             return retVal;
         }
 
-        private bool IdentifyDatabaseConnectionString(InstallSetup setup)
-        {
-            var F = new IdentifyDatabaseForm(setup);
-            if (F.ShowDialog() == DialogResult.OK)
-            {
-                this.Action = F.Action;
-                this.Settings = F.Settings;
-                return true;
-            }
-            return false;
-        }
-
-        /// <summary />
-        private void UIInstall(InstallSetup setup)
-        {
-            if (IdentifyDatabaseConnectionString(setup))
-            {
-                setup.ConnectionString = this.Settings.GetPrimaryConnectionString();
-                setup.InstallStatus = InstallStatusConstants.Upgrade;
-
-                if (this.Action == ActionTypeConstants.Create)
-                {
-                    setup.InstallStatus = InstallStatusConstants.Create;
-                    UpgradeInstaller.UpgradeDatabase(setup);
-                }
-                else if (this.Action == ActionTypeConstants.Upgrade)
-                {
-                    UpgradeInstaller.UpgradeDatabase(setup);
-                }
-            }
-        }
-
         #endregion
 
         #region ShowHelp
@@ -596,12 +568,10 @@ namespace PROJECTNAMESPACE
             sb.AppendLine("Specifies check mode and that no scripts will be run against the database. If any changes have occurred, an exception is thrown with the change list.");
             sb.AppendLine();
 
-            MessageBox.Show(sb.ToString(), "Help", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Console.WriteLine(sb.ToString());
         }
 
         #endregion
-
-        internal InstallSettings Settings { get; private set; }
 
         /// <summary>
         /// The action to take
@@ -671,7 +641,7 @@ namespace PROJECTNAMESPACE
         /// <summary>
         /// The transaction to use for this action. If null, one will be created.
         /// </summary>
-        public System.Data.SqlClient.SqlTransaction Transaction { get; set; }
+        public SqlTransaction Transaction { get; set; }
 
         /// <summary />
         public List<string> SkipSections { get; set; }
@@ -682,6 +652,9 @@ namespace PROJECTNAMESPACE
         /// <summary />
         public bool ShowSql { get; set; }
 
+        /// <summary />
+        public string LogFilename { get; set; }
+        
         /// <summary />
         public bool CheckOnly { get; set; }
 

@@ -1,58 +1,19 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using nHydrate.Generator.Common.Util;
-using System.ComponentModel;
 using DslModeling = global::Microsoft.VisualStudio.Modeling;
 
 namespace nHydrate.Dsl
 {
-    partial class ViewField : nHydrate.Dsl.IContainerParent, nHydrate.Dsl.IField
+    partial class ViewField : nHydrate.Dsl.IContainerParent, nHydrate.Dsl.IField, nHydrate.Generator.Common.GeneratorFramework.IDirtyable
     {
         #region Constructors
         // Constructors were not generated for this class because it had HasCustomConstructor
         // set to true. Please provide the constructors below in a partial class.
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="store">Store where new element is to be created.</param>
-        /// <param name="propertyAssignments">List of domain property id/value pairs to set once the element is created.</param>
         public ViewField(DslModeling::Store store, params DslModeling::PropertyAssignment[] propertyAssignments)
             : this(store != null ? store.DefaultPartitionForClass(DomainClassId) : null, propertyAssignments)
         {
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="partition">Partition where new element is to be created.</param>
-        /// <param name="propertyAssignments">List of domain property id/value pairs to set once the element is created.</param>
         public ViewField(DslModeling::Partition partition, params DslModeling::PropertyAssignment[] propertyAssignments)
             : base(partition, propertyAssignments)
         {
@@ -60,15 +21,7 @@ namespace nHydrate.Dsl
         #endregion
 
         #region Names
-        public string CamelName
-        {
-            get { return StringHelper.DatabaseNameToCamelCase(this.PascalName); }
-        }
-
-        public string DatabaseName
-        {
-            get { return this.Name; }
-        }
+        public string DatabaseName => this.Name;
 
         public string PascalName
         {
@@ -84,10 +37,7 @@ namespace nHydrate.Dsl
 
         #region IContainerParent Members
 
-        DslModeling.ModelElement IContainerParent.ContainerParent
-        {
-            get { return this.View; }
-        }
+        DslModeling.ModelElement IContainerParent.ContainerParent => this.View;
 
         #endregion
 
@@ -134,8 +84,7 @@ namespace nHydrate.Dsl
                             {
                                 if (typearr.Length == 2)
                                 {
-                                    int len;
-                                    if (int.TryParse(typearr[1], out len))
+                                    if (int.TryParse(typearr[1], out var len))
                                     {
                                         element.DataType = d.Value;
                                         element.Length = len;

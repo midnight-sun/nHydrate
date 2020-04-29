@@ -1,28 +1,3 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
 using System;
 using System.IO;
 using System.Xml.Serialization;
@@ -40,9 +15,7 @@ namespace nHydrate.Generator.Common.GeneratorFramework
         private const string REG_LOCATION = @"Software\nHydrate.org\nHydrate Modeler";
         private const string REG_INSTALLDIR_PROPERTY = "InstallDir";
 
-        private static readonly AddinAppData _instance = null;
         private readonly FileInfo _addinDataStoreFile = null;
-        private readonly AddinProperties _addInProperties = null;
 
         #endregion
 
@@ -52,7 +25,7 @@ namespace nHydrate.Generator.Common.GeneratorFramework
         {
             try
             {
-                _instance = new AddinAppData();
+                Instance = new AddinAppData();
             }
             catch (Exception ex)
             {
@@ -70,12 +43,12 @@ namespace nHydrate.Generator.Common.GeneratorFramework
                 fullFileName = appDataFolder;
 
                 _addinDataStoreFile = new FileInfo(fullFileName);
-                _addInProperties = new AddinProperties();
+                Properties = new AddinProperties();
                 if (_addinDataStoreFile.Exists)
                 {
                     var serializer = new XmlSerializer(typeof(AddinProperties));
                     var tr = new StreamReader(_addinDataStoreFile.FullName);
-                    _addInProperties = (AddinProperties)serializer.Deserialize(tr);
+                    Properties = (AddinProperties)serializer.Deserialize(tr);
                     tr.Close();
                 }
             }
@@ -89,15 +62,9 @@ namespace nHydrate.Generator.Common.GeneratorFramework
 
         #region Properties
 
-        private AddinProperties Properties
-        {
-            get { return _addInProperties; }
-        }
+        private AddinProperties Properties { get; } = null;
 
-        public static AddinAppData Instance
-        {
-            get { return _instance; }
-        }
+        public static AddinAppData Instance { get; } = null;
 
         public string ExtensionDirectory
         {
@@ -112,20 +79,9 @@ namespace nHydrate.Generator.Common.GeneratorFramework
                         retval = (new FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location)).DirectoryName;
                     return retval;
                 }
-                //else if (EnvDTEHelper.Instance.Version == "11.0")
-                //{
-                //    //VS 2012
-                //    //Get current path if need be
-                //    var retval = RegistryHelper.GetLocalMachineRegistryValue(REG_LOCATION, REG_INSTALLDIR_PROPERTY);
-                //    if (string.IsNullOrEmpty(retval))
-                //        retval = (new FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location)).DirectoryName;
-                //    return retval;
-                //}
-                else
-                {
-                    //VS 2012+
-                    return (new FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location)).DirectoryName;
-                }
+
+                //VS 2012+
+                return (new FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location)).DirectoryName;
             }
         }
 
@@ -157,12 +113,6 @@ namespace nHydrate.Generator.Common.GeneratorFramework
         {
             get { return Properties.LastUpdateCheck; }
             set { Properties.LastUpdateCheck = value; }
-        }
-
-        public string LastVersionChecked
-        {
-            get { return Properties.LastVersionChecked; }
-            set { Properties.LastVersionChecked = value; }
         }
 
         public bool AllowStats

@@ -1,38 +1,12 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Data;
 using System.Text.RegularExpressions;
 
 namespace nHydrate.DataImport.SqlClient
 {
-    public class SchemaModelHelper : ISchemaModelHelper
+    public class SchemaModelHelper
     {
         #region Public Methods
 
@@ -55,37 +29,6 @@ namespace nHydrate.DataImport.SqlClient
                 conn.Close();
             }
             return valid;
-        }
-
-        public bool IsSupportedSQLVersion(string connectionString)
-        {
-            var ds = DatabaseHelper.ExecuteDataset(connectionString, "SELECT SERVERPROPERTY('productversion')");
-            var version = (string)ds.Tables[0].Rows[0][0];
-            if (version.StartsWith("10."))
-                return true;
-            else if (version.StartsWith("9."))
-                return true;
-            else
-                return false;
-        }
-
-        public SQLServerTypeConstants GetSQLVersion(string connectionString)
-        {
-            var ds = DatabaseHelper.ExecuteDataset(connectionString, "SELECT SERVERPROPERTY('productversion')");
-            var version = (string)ds.Tables[0].Rows[0][0];
-            if (version.StartsWith("10."))
-            {
-                var ds2 = DatabaseHelper.ExecuteDataset(connectionString, "SELECT SERVERPROPERTY('Edition')");
-                var version2 = (string)ds2.Tables[0].Rows[0][0];
-                if (version2 == "SQL Azure")
-                    return SQLServerTypeConstants.SQLAzure;
-                else
-                    return SQLServerTypeConstants.SQL2008;
-            }
-            else
-            {
-                return SQLServerTypeConstants.SQL2005;
-            }
         }
 
         #endregion
@@ -313,170 +256,5 @@ namespace nHydrate.DataImport.SqlClient
             return sb.ToString();
         }
 
-        internal static string GetSqlForFunctions()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("select o.*, s.name as schemaname from sys.objects o inner join sys.schemas s on o.schema_id = s.schema_id WHERE [type] IN ('FN', 'IF', 'TF') and o.name <> 'fn_diagramobjects'");
-            return sb.ToString();
-        }
-
-        internal static string GetFunctionBody(string schema, string name, string connectionString)
-        {
-            var sb = new StringBuilder();
-            var ds = DatabaseHelper.ExecuteDataset(connectionString, "sp_helptext '[" + schema + "].[" + name + "]'");
-            foreach (DataRow dr in ds.Tables[0].Rows)
-            {
-                var t = (string)dr["Text"] + string.Empty;
-                sb.AppendLine(t.Replace("\r\n", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty));
-            }
-
-            var sql = sb.ToString();
-            var regEx = new Regex(@"CREATE\s*FUNCTION[\r\n\s]*[a-zA-Z0-9\[\]_\.]*.*RETURNS.*AS[\r\n\s]+(RETURN[\s\S\r\n]*)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-            var match = regEx.Match(sql);
-            if (match != null && match.Groups != null && match.Groups.Count == 2)
-            {
-                sql = match.Groups[1].Value;
-            }
-            else
-            {
-                regEx = new Regex(@"CREATE\s*FUNCTION[\r\n\s]*[a-zA-Z0-9\[\]_\.]*.*RETURNS.*(BEGIN[\s\S\r\n]*)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                match = regEx.Match(sql);
-                if (match != null && match.Groups != null && match.Groups.Count == 2)
-                {
-                    sql = match.Groups[1].Value;
-                }
-                else
-                {
-                    regEx = new Regex(@"CREATE\s*FUNCTION[\r\n\s]*[a-zA-Z0-9\[\]_\.]*.*RETURNS.*AS[\r\n\s]+([\s\S\r\n]*)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                    match = regEx.Match(sql);
-                    if (match != null && match.Groups != null && match.Groups.Count == 2)
-                        sql = match.Groups[1].Value;
-                    else
-                        System.Diagnostics.Debug.Write(string.Empty);
-                }
-            }
-
-            return sql.Trim();
-        }
-
-        internal static string GetSqlForStoredProceduresColumns(StoredProc sp)
-        {
-            var sb = new StringBuilder();
-            System.Windows.Forms.Application.DoEvents();
-            sb.AppendLine("SET FMTONLY ON");
-            sb.Append("EXEC [" + (string.IsNullOrEmpty(sp.Schema) ? "dbo" : sp.Schema) + "].[" + sp.Name + "] ");
-
-            foreach (var parameter in sp.ParameterList)
-            {
-                if (parameter.DataType == SqlDbType.UniqueIdentifier)
-                    sb.Append("@" + parameter.Name + "='540C6D43-5645-40FB-980F-2FF126BFBD5E'");
-                else if (parameter.IsTextType())
-                    sb.Append("@" + parameter.Name + "=''");
-                else if (parameter.IsNumericType())
-                    sb.Append("@" + parameter.Name + "=0");
-                else if (parameter.IsBinaryType())
-                    sb.Append("@" + parameter.Name + "=0x0");
-                else if (parameter.DataType == SqlDbType.Bit)
-                    sb.Append("@" + parameter.Name + "=0");
-                else if (parameter.IsDateType())
-                    sb.Append("@" + parameter.Name + "='2000-01-01'");
-                else
-                    System.Diagnostics.Debug.Write(string.Empty);
-
-                if (sp.ParameterList.IndexOf(parameter) < sp.ParameterList.Count - 1)
-                    sb.Append(", ");
-            }
-
-            sb.AppendLine();
-            return sb.ToString();
-        }
-
-        internal static string GetSqlForStoredProceduresBody(string schema, string spName, string connectionString)
-        {
-            var sb = new StringBuilder();
-            var ds = DatabaseHelper.ExecuteDataset(connectionString, "sp_helptext '[" + schema + "].[" + spName + "]'");
-            if (ds.Tables.Count > 0)
-            {
-                foreach (DataRow dr in ds.Tables[0].Rows)
-                {
-                    sb.Append(((string)dr[0]).Replace("\r", string.Empty));
-                }
-
-                var arr = sb.ToString().Split('\n').ToList();
-                sb = new StringBuilder();
-
-                var inBody = false;
-                foreach (var lineText in arr)
-                {
-                    var lineText2 = StripComments(lineText);
-
-                    //This is FAR from perfect. It assumes the creation line ends with the "AS" keyword for a stored proc
-                    if (inBody)
-                    {
-                        sb.AppendLine(lineText);
-                    }
-                    else if (!inBody && (lineText2.ToLower().Trim().EndsWith(" as") || lineText2.ToLower().Trim() == "as"))
-                    {
-                        inBody = true;
-                    }
-                }
-            }
-
-            return sb.ToString().Trim();
-        }
-
-        internal static string GetSqlForStoredProcedures(string name = "")
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("SELECT OBJECT_SCHEMA_NAME(object_id) as schemaname, sys.objects.object_id, sys.objects.type, sys.objects.name as object_name");
-            sb.AppendLine("FROM	sys.objects");
-            sb.AppendLine("WHERE (sys.objects.type = 'P') AND");
-            sb.AppendLine("		NOT (sys.objects.name LIKE 'gen_%') AND");
-            sb.AppendLine("		NOT (sys.objects.name LIKE 'dt_%') AND");
-            sb.AppendLine("		NOT (sys.objects.name LIKE 'sp[_]%diagram%')");
-
-            if (!string.IsNullOrEmpty(name))
-                sb.AppendLine("		AND (sys.objects.name = '" + name + "')");
-
-            //sb.AppendLine("		AND (sys.objects.uid in (select uid from dbo.sysusers))");
-            sb.AppendLine("ORDER BY sys.objects.name");
-            return sb.ToString();
-        }
-
-        public static string GetSqlForStoredProceduresParameters(string spPrefix = "")
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("SELECT	sys.parameters.system_type_id, ");
-            sb.AppendLine("		sys.objects.name as object_name, ");
-            sb.AppendLine("		sys.objects.object_id,");
-            sb.AppendLine("		sys.parameters.name AS column_name,");
-            sb.AppendLine("		sys.types.name AS column_type,");
-            sb.AppendLine("		sys.parameters.max_length,");
-            sb.AppendLine("		sys.parameters.is_output,");
-            sb.AppendLine("		sys.parameters.is_nullable");
-            sb.AppendLine("FROM	sys.objects INNER JOIN");
-            sb.AppendLine("		sys.parameters ON sys.objects.object_id = sys.parameters.object_id INNER JOIN");
-            sb.AppendLine("		sys.types ON sys.parameters.system_type_id = sys.types.system_type_id");
-            sb.AppendLine("WHERE	(sys.objects.type = 'P') AND");
-            if (!string.IsNullOrEmpty(spPrefix))
-                sb.AppendLine("		NOT (sys.objects.name LIKE '" + spPrefix + "_%') AND");
-            sb.AppendLine("		NOT (sys.objects.name LIKE 'sp[_]%diagram%') AND");
-            sb.AppendLine("		sys.types.name <> 'sysname'");
-            //sb.AppendLine("		AND (sys.objects.principal_id IS NULL OR (sys.objects.principal_id in (select principal_id from sys.database_principals)))");
-            sb.AppendLine("ORDER BY");
-            sb.AppendLine("		sys.objects.name, sys.parameters.name");
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// Not perfect!! Just strips off what looks like comment
-        /// </summary>
-        private static string StripComments(string sql)
-        {
-            if (string.IsNullOrEmpty(sql)) return sql;
-            var index = sql.IndexOf("--");
-            if (index == -1) return sql;
-            return sql.Substring(0, index);
-        }
     }
 }

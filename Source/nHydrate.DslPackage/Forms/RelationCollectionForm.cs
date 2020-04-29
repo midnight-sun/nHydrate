@@ -1,36 +1,8 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Linq;
-using System.Drawing;
-using System.Collections;
 using System.ComponentModel;
 using System.Windows.Forms;
-using nHydrate.Generator.Models;
-using nHydrate.Generator.Common.GeneratorFramework;
 using System.Collections.Generic;
 using nHydrate.Dsl;
 
@@ -72,7 +44,7 @@ namespace nHydrate.DslPackage.Forms
 			lvwMembers.Columns.Add(new ColumnHeader() { Text = "Child", Width = 200 });
 			lvwMembers.Columns.Add(new ColumnHeader() { Text = "Role", Width = 200 });
 
-			lvwMembers.ListViewItemSorter = new nHydrate.Generator.Common.Forms.CommonLibrary.ListViewItemComparer(0, lvwMembers.Sorting);
+			lvwMembers.ListViewItemSorter = new nHydrate.Generator.Common.ListViewItemComparer(0, lvwMembers.Sorting);
 			lvwMembers.Sort();
 
 			this.LoadList();
@@ -116,7 +88,7 @@ namespace nHydrate.DslPackage.Forms
 
 				//Get a list of relations for the current entity only
 				var relationshipList = new List<EntityAssociationConnector>();
-				foreach (var connector in _diagram.NestedChildShapes.Where(x => x is EntityAssociationConnector).AsEnumerable<EntityAssociationConnector>())
+				foreach (var connector in _diagram.NestedChildShapes.Where(x => x is EntityAssociationConnector).Cast<EntityAssociationConnector>())
 				{
 					if (connector.FromShape == _entityShape)
 					{
@@ -147,7 +119,7 @@ namespace nHydrate.DslPackage.Forms
 		private bool EditItem()
 		{
 			if (lvwMembers.SelectedItems.Count == 0) return false;
-			var connector = lvwMembers.SelectedItems.FirstOrDefault<ListViewItem>().Tag as EntityAssociationConnector;
+			var connector = lvwMembers.SelectedItems.Cast<ListViewItem>().FirstOrDefault().Tag as EntityAssociationConnector;
 			var F = new nHydrate.DslPackage.Forms.RelationshipDialog(_model, _store, connector.ModelElement as EntityHasEntities);
 			if (F.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
@@ -213,13 +185,12 @@ namespace nHydrate.DslPackage.Forms
 		private void cmdDelete_Click(object sender, EventArgs e)
 		{
 			var list = new List<ListViewItem>();
-			list.AddRange(lvwMembers.SelectedItems.AsEnumerable<ListViewItem>());
+			list.AddRange(lvwMembers.SelectedItems.Cast<ListViewItem>());
 			foreach (var li in list)
 			{
 				var connector = li.Tag as EntityAssociationConnector;
 				using (var transaction = _store.TransactionManager.BeginTransaction(Guid.NewGuid().ToString()))
 				{
-					//var l = _diagram.NestedChildShapes.Where(x => x is EntityAssociationConnector).AsEnumerable<EntityAssociationConnector>();
 					connector.ModelElement.Delete();
 					_diagram.NestedChildShapes.Remove(connector);
 					transaction.Commit();
@@ -277,7 +248,7 @@ namespace nHydrate.DslPackage.Forms
 
 			// Call the sort method to manually sort.
 			lvwMembers.Sort();
-			this.lvwMembers.ListViewItemSorter = new nHydrate.Generator.Common.Forms.CommonLibrary.ListViewItemComparer(e.Column, lvwMembers.Sorting);
+			this.lvwMembers.ListViewItemSorter = new nHydrate.Generator.Common.ListViewItemComparer(e.Column, lvwMembers.Sorting);
 		}
 
 	}

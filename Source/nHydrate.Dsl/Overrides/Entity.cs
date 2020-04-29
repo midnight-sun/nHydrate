@@ -1,55 +1,14 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using nHydrate.Generator.Common.Util;
-using DslModeling = global::Microsoft.VisualStudio.Modeling;
-using DslDesign = global::Microsoft.VisualStudio.Modeling.Design;
-using System.ComponentModel;
 
 namespace nHydrate.Dsl
 {
-    partial class Entity : nHydrate.Dsl.IModuleLink, nHydrate.Dsl.IDatabaseEntity, nHydrate.Dsl.IFieldContainer
+    partial class Entity : nHydrate.Dsl.IDatabaseEntity, nHydrate.Dsl.IFieldContainer, nHydrate.Generator.Common.GeneratorFramework.IDirtyable
     {
-        public string CamelName
-        {
-            get { return StringHelper.DatabaseNameToCamelCase(this.PascalName); }
-        }
-
-        public string DatabaseName
-        {
-            get { return this.Name; }
-        }
-
-        protected override void OnCopy(DslModeling.ModelElement sourceElement)
-        {
-            base.OnCopy(sourceElement);
-        }
+        public string DatabaseName => this.Name;
 
         public string PascalName
         {
@@ -66,18 +25,9 @@ namespace nHydrate.Dsl
         /// Get the full hierarchy of tables starting with this table 
         /// and working back to the most base table
         /// </summary>
-        /// <returns></returns>
         public IEnumerable<Entity> GetTableHierarchy()
         {
-            var retval = new List<Entity>();
-            var t = this;
-            while (t != null)
-            {
-                retval.Add(t);
-                t = t.ParentInheritedEntity;
-            }
-            retval.Reverse();
-            return retval;
+            return new[] {this};
         }
 
         /// <summary>
@@ -85,7 +35,7 @@ namespace nHydrate.Dsl
         /// </summary>
         public IEnumerable<Field> GeneratedColumns
         {
-            get { return this.Fields.Where(x => x.IsGenerated).OrderBy(x => x.Name); }
+            get { return this.Fields.OrderBy(x => x.Name); }
         }
 
         /// <summary>
@@ -122,63 +72,12 @@ namespace nHydrate.Dsl
             }
         }
 
-        public IList<EntityInheritsEntity> ParentRelationshipList
-        {
-            get
-            {
-                return this.Store.ElementDirectory.AllElements
-                    .Where(x => x is EntityInheritsEntity)
-                    .ToList()
-                    .Cast<EntityInheritsEntity>()
-                    .Where(x => x.ChildDerivedEntities == this)
-                    .ToList();
-            }
-        }
-
-        public IList<EntityHasViews> RelationshipViewList
-        {
-            get
-            {
-                return this.Store.ElementDirectory.AllElements
-                    .Where(x => x is EntityHasViews)
-                    .ToList()
-                    .Cast<EntityHasViews>()
-                    .Where(x => x.ParentEntity == this)
-                    .ToList();
-            }
-        }
-
         /// <summary>
         /// Returns generated relations for this table
         /// </summary>
         public IEnumerable<EntityHasEntities> GetRelationsWhereChild()
         {
-            return GetRelationsWhereChild(false);
-        }
-
-        /// <summary>
-        /// Returns generated relations for this table
-        /// </summary>
-        public IEnumerable<EntityHasEntities> GetRelationsWhereChild(bool fullHierarchy)
-        {
-            var retval = this.nHydrateModel.GetRelationsWhereChild(this, fullHierarchy);
-            return retval.Where(x => x.TargetEntity.IsGenerated && x.SourceEntity.IsGenerated);
-        }
-
-        /// <summary>
-        /// Determines if the specified table is an ancestor of the this table object
-        /// </summary>
-        /// <param name="entity"></param>
-        /// <returns></returns>
-        public bool IsInheritedFrom(Entity entity)
-        {
-            var t = this.ParentInheritedEntity;
-            while (t != null)
-            {
-                if (t == entity) return true;
-                t = t.ParentInheritedEntity;
-            }
-            return false;
+            return this.nHydrateModel.GetRelationsWhereChild(this);
         }
 
         /// <summary>
@@ -209,21 +108,11 @@ namespace nHydrate.Dsl
         /// <returns></returns>
         public IEnumerable<Field> GetColumnsFullHierarchy()
         {
-            return GetColumnsFullHierarchy(true);
-        }
-
-        /// <summary>
-        /// This gets all columns from this and all base classes
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerable<Field> GetColumnsFullHierarchy(bool includeCurrent)
-        {
             try
             {
                 var nameList = new List<string>();
                 var retval = new List<Field>();
                 var t = this;
-                if (!includeCurrent) t = t.ParentInheritedEntity;
                 while (t != null)
                 {
                     foreach (var c in t.Fields)
@@ -234,7 +123,8 @@ namespace nHydrate.Dsl
                             retval.Add(c);
                         }
                     }
-                    t = t.ParentInheritedEntity;
+                    //t = t.ParentInheritedEntity;
+                    t = null;
                 }
                 return retval;
 
@@ -394,38 +284,10 @@ namespace nHydrate.Dsl
             return this.Name;
         }
 
-        #region IModuleLink
-
-        IEnumerable<Module> IModuleLink.Modules
-        {
-            get { return this.Modules.AsEnumerable(); }
-        }
-
-        void IModuleLink.AddModule(Module module)
-        {
-            if (!this.Modules.Contains(module))
-                this.Modules.Add(module);
-        }
-
-        void IModuleLink.RemoveModule(Module module)
-        {
-            if (this.Modules.Contains(module))
-                this.Modules.Remove(module);
-        }
-
-        #endregion
-
         protected override void OnDeleting()
         {
             if (this.nHydrateModel != null)
                 this.nHydrateModel.RemovedTables.Add(this.PascalName);
-
-            foreach (var index in this.Indexes)
-            {
-                var count1 = this.nHydrateModel.IndexModules.Remove(x => x.IndexID == index.Id);
-            }
-
-
             base.OnDeleting();
         }
 
@@ -473,11 +335,6 @@ namespace nHydrate.Dsl
             }
         }
 
-        private string GetSecurityValue()
-        {
-            return (this.SecurityFunction != null) ? "(Has Security)" : "";
-        }
-
         private void SetSecurityValue(string v)
         {
         }
@@ -495,21 +352,4 @@ namespace nHydrate.Dsl
 
     }
 
-    [RefreshProperties(RefreshProperties.All)]
-    partial class SecurityFunction
-    {
-        public override string ToString()
-        {
-            return this.SQL;
-        }
-    }
-
-    [RefreshProperties(RefreshProperties.All)]
-    partial class SecurityFunctionParameter
-    {
-        public override string ToString()
-        {
-            return this.Name;
-        }
-    }
 }

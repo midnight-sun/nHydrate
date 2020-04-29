@@ -1,28 +1,4 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -38,20 +14,24 @@ namespace nHydrate.Generator.Models
     {
         #region Member Variables
 
+        public enum DeleteActionConstants
+        {
+            NoAction,
+            Cascade,
+            SetNull
+        }
+
         protected const string _def_roleName = "";
         protected const string _def_constraintname = "";
         protected const bool _def_enforce = true;
         protected const string _def_description = "";
+        protected const DeleteActionConstants _def_deleteAction = DeleteActionConstants.NoAction;
 
-        protected int _id = 1;
         protected Reference _parentTableRef = null;
         protected Reference _childTableRef = null;
-        protected string _roleName = _def_roleName;
-        protected string _constraintName = string.Empty;
-        protected ColumnRelationshipCollection _columnRelationships = null;
-        //private DateTime _createdDate = DateTime.Now;
         private bool _enforce = _def_enforce;
         private string _description = _def_description;
+        private DeleteActionConstants _deleteAction = _def_deleteAction;
 
         #endregion
 
@@ -60,10 +40,25 @@ namespace nHydrate.Generator.Models
         public Relation(INHydrateModelObject root)
             : base(root)
         {
-            _columnRelationships = new ColumnRelationshipCollection(this.Root);
+            this.Initialize();
+        }
+
+        public Relation()
+        {
+            //Only needed for BaseModelCollection<T>
         }
 
         #endregion
+
+        private void Initialize()
+        {
+            ColumnRelationships = new ColumnRelationshipCollection(this.Root);
+        }
+
+        protected override void OnRootReset(System.EventArgs e)
+        {
+            this.Initialize();
+        }
 
         #region Events
 
@@ -109,24 +104,8 @@ namespace nHydrate.Generator.Models
             get { return this.ColumnRelationships.AsEnumerable().All(cr => cr.ParentColumn.PrimaryKey); }
         }
 
-        /// <summary>
-        /// Determines the field mappings of this relationship.
-        /// </summary>
-        [Description("Determines the field mappings of this relationship.")]
-        [Category("Data")]
-        //[Editor(typeof(nHydrate.Generator.Design.Editors.ColumnRelationshipCollectionEditor), typeof(System.Drawing.Design.UITypeEditor))]
-        //[TypeConverter(typeof(nHydrate.Generator.Design.Converters.ColumnRelationshipCollectionConverter))]
-        public ColumnRelationshipCollection ColumnRelationships
-        {
-            get { return _columnRelationships; }
-        }
+        public ColumnRelationshipCollection ColumnRelationships { get; protected set; } = null;
 
-        /// <summary>
-        /// Determines the parent table in the relationship.
-        /// </summary>
-        [Browsable(false)]
-        [Description("Determines the parent table in the relationship.")]
-        [Category("Data")]
         public Reference ParentTableRef
         {
             get { return _parentTableRef; }
@@ -138,16 +117,10 @@ namespace nHydrate.Generator.Models
                     _parentTableRef = value;
                     this.RefreshRoleName();
                     this.OnAfterParentTableChange(this, new EventArgs());
-                    this.OnPropertyChanged(this, new PropertyChangedEventArgs("parentTableRef"));
                 }
             }
         }
 
-        /// <summary>
-        /// Determines the child table in the relationship.
-        /// </summary>
-        [Description("Determines the child table in the relationship.")]
-        [Category("Data")]
         public Reference ChildTableRef
         {
             get { return _childTableRef; }
@@ -159,66 +132,14 @@ namespace nHydrate.Generator.Models
                     _childTableRef = value;
                     this.RefreshRoleName();
                     this.OnAfterChildTableChange(this, new EventArgs());
-                    this.OnPropertyChanged(this, new PropertyChangedEventArgs("childTableRef"));
                 }
             }
         }
 
-        /// <summary>
-        /// Determines the unique id of this object.
-        /// </summary>
-        [Browsable(false)]
-        public int Id
-        {
-            get { return _id; }
-        }
+        public string RoleName { get; set; } = _def_roleName;
 
-        /// <summary>
-        /// Determines the database role name of this relation.
-        /// </summary>
-        [Description("Determines the database role name of this relation.")]
-        [Category("Data")]
-        [DefaultValue(_def_roleName)]
-        public string RoleName
-        {
-            get { return _roleName; }
-            set
-            {
-                if (_roleName != value)
-                {
-                    _roleName = value;
-                    this.OnPropertyChanged(this, new PropertyChangedEventArgs("RoleName"));
-                }
-            }
-        }
+        public string ConstraintName { get; set; } = string.Empty;
 
-        [Browsable(false)]
-        public string ConstraintName
-        {
-            get { return _constraintName; }
-            set
-            {
-                if (_constraintName != value)
-                {
-                    _constraintName = value;
-                    this.OnPropertyChanged(this, new PropertyChangedEventArgs("ConstraintName"));
-                }
-            }
-        }
-
-        //[Browsable(true)]
-        //[Category("Data")]
-        //[Description("The date that this object was created.")]
-        //[ReadOnlyAttribute(true)]
-        //public DateTime CreatedDate
-        //{
-        //  get { return _createdDate; }
-        //}
-
-        /// <summary>
-        /// Determines if this relationship has nullable fields or is required
-        /// </summary>
-        [Browsable(false)]
         public bool IsRequired
         {
             get
@@ -232,10 +153,6 @@ namespace nHydrate.Generator.Models
             }
         }
 
-        /// <summary>
-        /// Determines if this is a M:N relationship
-        /// </summary>
-        [Browsable(false)]
         public bool IsManyToMany
         {
             get
@@ -259,10 +176,6 @@ namespace nHydrate.Generator.Models
             }
         }
 
-        /// <summary>
-        /// Determines if this is a 1:1 relationship
-        /// </summary>
-        [Browsable(false)]
         public bool IsOneToOne
         {
             get
@@ -290,31 +203,6 @@ namespace nHydrate.Generator.Models
             }
         }
 
-        /// <summary>
-        /// Determines if all fields on both sides of the relation are table PKs
-        /// </summary>
-        [Browsable(false)]
-        public bool AreAllFieldsPK
-        {
-            get
-            {
-                if ((this.ParentTable == null) || (this.ChildTable == null)) return false;
-                if (this.ParentTable.PrimaryKeyColumns.Count != this.ChildTable.PrimaryKeyColumns.Count) return false;
-
-                foreach (ColumnRelationship columnRelationship in this.ColumnRelationships)
-                {
-                    if ((columnRelationship.ParentColumn == null) || (!columnRelationship.ParentColumn.PrimaryKey)) return false;
-                    if ((columnRelationship.ChildColumn == null) || (!columnRelationship.ChildColumn.PrimaryKey)) return false;
-                }
-
-                return true;
-            }
-        }
-
-        /// <summary>
-        /// Determines if this is an inheritance relationship
-        /// </summary>
-        [Browsable(false)]
         public bool IsInherited
         {
             get
@@ -326,10 +214,6 @@ namespace nHydrate.Generator.Models
             }
         }
 
-        [Browsable(false)]
-        [Description("Determines if this relation is enforced in the database.")]
-        [Category("Data")]
-        [DefaultValue(_def_enforce)]
         public bool Enforce
         {
             get { return _enforce; }
@@ -338,103 +222,31 @@ namespace nHydrate.Generator.Models
                 if (_enforce != value)
                 {
                     _enforce = value;
-                    this.OnPropertyChanged(this, new PropertyChangedEventArgs("Enforce"));
                 }
             }
         }
 
-        [Browsable(false)]
         public string Description
         {
             get { return _description; }
             set
             {
                 _description = value;
-                this.OnPropertyChanged(this, new PropertyChangedEventArgs("Description"));
             }
         }
 
-        /// <summary>
-        /// A hash of the table/columns of this relationship with no role information
-        /// </summary>
-        [Browsable(false)]
-        public string LinkHash
+        public DeleteActionConstants DeleteAction
         {
-            get
+            get { return _deleteAction; }
+            set
             {
-                var retval = string.Empty;
-                if (this.ParentTable != null) retval += this.ParentTable.Name.ToLower() + "|";
-                if (this.ChildTable != null) retval += this.ChildTable.Name.ToLower() + "|";
-                foreach (var cr in this.ColumnRelationships.ToList())
-                {
-                    if (cr.ParentColumn != null) retval += cr.ParentColumn.Name.ToLower() + "|";
-                    if (cr.ChildColumn != null) retval += cr.ChildColumn.Name.ToLower() + "|";
-                }
-                return retval;
+                _deleteAction = value;
             }
-        }
-
-        public int UniqueHash
-        {
-            get { return (this.LinkHash + "|" + this.RoleName).GetHashCode(); }
         }
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Determines that all columns in the relationship are generated
-        /// </summary>
-        public bool IsGenerated
-        {
-            get
-            {
-                var retval = true;
-                foreach (ColumnRelationship columnRelationship in this.ColumnRelationships)
-                {
-                    var childColumn = columnRelationship.ChildColumn;
-                    var parentColumn = columnRelationship.ParentColumn;
-                    retval &= childColumn.Generated;
-                    retval &= parentColumn.Generated;
-                }
-                return retval;
-            }
-        }
-
-        public bool IsPrimaryKeyRelation()
-        {
-            //Determine if this relation ship is based on primary keys
-            var retval = true;
-            foreach (ColumnRelationship columnRelationship in this.ColumnRelationships)
-            {
-                var parentColumn = columnRelationship.ParentColumn;
-                var parentTable = this.ParentTable;
-                if (!parentTable.PrimaryKeyColumns.Contains(parentColumn))
-                    retval = false;
-            }
-            return retval;
-        }
-
-        public string ToLongString()
-        {
-            try
-            {
-                var col1 = this.ColumnRelationships.First().ParentColumn;
-                var col2 = this.ColumnRelationships.First().ChildColumn;
-                var retval = (this.RoleName == "" ? "" : this.RoleName + " ");
-                retval += ((Table)col1.ParentTableRef.Object).Name + ".";
-                retval += col1.ToString();
-                retval += "->";
-                retval += ((Table)col2.ParentTableRef.Object).Name + ".";
-                retval += col2.ToString();
-                return retval;
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
 
         public bool IsInvalidRelation()
         {
@@ -546,10 +358,11 @@ namespace nHydrate.Generator.Models
 
         }
 
-        /// <summary>
-        /// Get the parent table of this relation
-        /// </summary>
-        /// <returns></returns>
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
         public Table ParentTable
         {
             get
@@ -560,10 +373,6 @@ namespace nHydrate.Generator.Models
             }
         }
 
-        /// <summary>
-        /// Get the child table of this relation
-        /// </summary>
-        /// <returns></returns>
         public Table ChildTable
         {
             get
@@ -572,54 +381,6 @@ namespace nHydrate.Generator.Models
                 if (this.ChildTableRef.Object == null) return null;
                 return this.ChildTableRef.Object as Table;
             }
-        }
-
-        public Table GetSecondaryAssociativeTable()
-        {
-            if (!this.IsManyToMany) return null;
-
-            var parentTable = (Table)this.ParentTableRef.Object;
-            var childTable = (Table)this.ChildTableRef.Object;
-
-            var otherTable = parentTable;
-            if (childTable.AssociativeTable) otherTable = childTable;
-
-            if (otherTable.AssociativeTable)
-            {
-                var relationList = otherTable.GetRelationsWhereChild();
-                {
-                    var relation = relationList.Where(x => x != this).FirstOrDefault();
-                    if (relation == null) return null;
-
-                    return relation.ParentTableRef.Object as Table;
-
-                }
-            }
-            return null;
-
-        }
-
-        public Relation GetAssociativeOtherRelation()
-        {
-            if (!this.IsManyToMany) return null;
-
-            var parentTable = (Table)this.ParentTableRef.Object;
-            var childTable = (Table)this.ChildTableRef.Object;
-
-            var otherTable = parentTable;
-            if (childTable.AssociativeTable) otherTable = childTable;
-
-            if (otherTable.AssociativeTable)
-            {
-                var relationList = otherTable.GetRelationsWhereChild();
-                if (relationList.Count() == 2)
-                {
-                    var relation = relationList.Where(x => x != this).FirstOrDefault();
-                    if (relation == null) return null;
-                    return relation;
-                }
-            }
-            return null;
         }
 
         #endregion
@@ -634,7 +395,6 @@ namespace nHydrate.Generator.Models
                 var prehash =
                     this.RoleName + "|" +
                     sb.ToString();
-                //return HashHelper.Hash(prehash);
                 return prehash;
             }
         }
@@ -645,11 +405,10 @@ namespace nHydrate.Generator.Models
         {
             var oDoc = node.OwnerDocument;
 
-            XmlHelper.AddAttribute(node, "key", this.Key);
-            XmlHelper.AddAttribute(node, "enforce", this.Enforce);
-
-            if (this.Description != _def_description)
-                XmlHelper.AddAttribute(node, "description", this.Description);
+            node.AddAttribute("key", this.Key);
+            node.AddAttribute("enforce", this.Enforce);
+            node.AddAttribute("description", this.Description, _def_description);
+            node.AddAttribute("deleteAction", this.DeleteAction.ToString());
 
             var columnRelationshipsNode = oDoc.CreateElement("crl");
             ColumnRelationships.XmlAppend(columnRelationshipsNode);
@@ -665,19 +424,20 @@ namespace nHydrate.Generator.Models
                 this.ParentTableRef.XmlAppend(parentTableRefNode);
             node.AppendChild(parentTableRefNode);
 
-            XmlHelper.AddAttribute(node, "id", this.Id);
+            node.AddAttribute("id", this.Id);
             if (this.RoleName != _def_roleName)
-                XmlHelper.AddAttribute(node, "roleName", this.RoleName);
+                node.AddAttribute("roleName", this.RoleName);
             if (this.ConstraintName != _def_constraintname)
-                XmlHelper.AddAttribute(node, "constraintName", this.ConstraintName);
-            //XmlHelper.AddAttribute(node, "createdDate", _createdDate.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture));
+                node.AddAttribute("constraintName", this.ConstraintName);
         }
 
         public override void XmlLoad(XmlNode node)
         {
-            _key = XmlHelper.GetAttributeValue(node, "key", string.Empty);
+            this.Key = XmlHelper.GetAttributeValue(node, "key", string.Empty);
             _enforce = XmlHelper.GetAttributeValue(node, "enforce", _def_enforce);
             _description = XmlHelper.GetAttributeValue(node, "description", _def_description);
+
+            _deleteAction = (DeleteActionConstants)Enum.Parse(typeof(DeleteActionConstants), XmlHelper.GetAttributeValue(node, "deleteAction", _def_deleteAction.ToString()));
 
             var columnRelationshipsNode = node.SelectSingleNode("columnRelationships"); //deprecated, use "crl"
             if (columnRelationshipsNode == null)
@@ -694,16 +454,13 @@ namespace nHydrate.Generator.Models
             if (this.ParentTableRef == null) _parentTableRef = new Reference(this.Root);
             this.ParentTableRef.XmlLoad(parentTableRefNode);
 
-            this.ResetId(XmlHelper.GetAttributeValue(node, "id", _id));
+            this.ResetId(XmlHelper.GetAttributeValue(node, "id", this.Id));
 
             var roleName = XmlHelper.GetAttributeValue(node, "roleName", _def_roleName);
             if (roleName == "fk") roleName = string.Empty; //Error correct from earlier versions
             this.RoleName = roleName;
 
             this.ConstraintName = XmlHelper.GetAttributeValue(node, "constraintName", _def_constraintname);
-            //_createdDate = DateTime.ParseExact(XmlHelper.GetAttributeValue(node, "createdDate", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)), "yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-
-            this.Dirty = false;
         }
 
         #endregion
@@ -724,37 +481,13 @@ namespace nHydrate.Generator.Models
             return returnVal;
         }
 
-        [Browsable(false)]
-        public string PascalRoleName
-        {
-            get
-            {
-                if (((ModelRoot)this.Root).TransformNames)
-                    return StringHelper.DatabaseNameToPascalCase(RoleName);
-                else
-                    return StringHelper.FirstCharToUpper(this.RoleName);
-            }
-        }
+        public string PascalRoleName => StringHelper.FirstCharToUpper(this.RoleName);
 
-        [Browsable(false)]
-        public string CamelRoleName
-        {
-            get
-            {
-                if (((ModelRoot)this.Root).TransformNames)
-                    return StringHelper.DatabaseNameToCamelCase(RoleName);
-                else
-                    return StringHelper.FirstCharToLower(this.RoleName);
-            }
-        }
-
-        [Browsable(false)]
         public string DatabaseRoleName
         {
             get { return this.RoleName; }
         }
 
-        [Browsable(false)]
         public IEnumerable<Column> FkColumns
         {
             get
@@ -781,11 +514,6 @@ namespace nHydrate.Generator.Models
                     throw;
                 }
             }
-        }
-
-        public void ResetId(int newId)
-        {
-            _id = newId;
         }
 
         public override string ToString()

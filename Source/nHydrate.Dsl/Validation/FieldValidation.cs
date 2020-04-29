@@ -1,32 +1,5 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Microsoft.VisualStudio.Modeling.Validation;
 
 namespace nHydrate.Dsl
@@ -36,12 +9,7 @@ namespace nHydrate.Dsl
     {
         #region Dirty
         [System.ComponentModel.Browsable(false)]
-        internal bool IsDirty
-        {
-            get { return _isDirty; }
-            set { _isDirty = value; }
-        }
-        private bool _isDirty = false;
+        public bool IsDirty { get; set; } = false;
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
         {
@@ -56,11 +24,10 @@ namespace nHydrate.Dsl
             var timer = nHydrate.Dsl.Custom.DebugHelper.StartTimer();
             try
             {
-                if (!this.IsGenerated) return;
                 //if (!this.IsDirty) return;
 
                 #region Check valid name
-                if (!ValidationHelper.ValidDatabaseIdenitifer(this.DatabaseName))
+                if (!ValidationHelper.ValidDatabaseIdentifier(this.DatabaseName))
                     context.LogError(string.Format(ValidationHelper.ErrorTextInvalidIdentifier, this.Entity.Name + "." + this.Name), string.Empty, this);
                 else if (!ValidationHelper.ValidCodeIdentifier(this.PascalName))
                     context.LogError(string.Format(ValidationHelper.ErrorTextInvalidIdentifier, this.Entity.Name + "." + this.Name), string.Empty, this);
@@ -70,25 +37,8 @@ namespace nHydrate.Dsl
                 #endregion
 
                 #region Check valid name based on codefacade
-                if ((!string.IsNullOrEmpty(this.CodeFacade)) && !ValidationHelper.ValidDatabaseIdenitifer(this.CodeFacade))
+                if ((!string.IsNullOrEmpty(this.CodeFacade)) && !ValidationHelper.ValidDatabaseIdentifier(this.CodeFacade))
                     context.LogError(ValidationHelper.ErrorTextInvalidCodeFacade, string.Empty, this);
-
-                if (this.IsNumericType())
-                {
-                    if (!double.IsNaN(this.Min) && (!double.IsNaN(this.Max)))
-                    {
-                        if (this.Min > this.Max)
-                            context.LogError(ValidationHelper.ErrorTextMinMaxValueMismatch, string.Empty, this);
-                    }
-                }
-                else //Non-numeric
-                {
-                    //Neither should be set
-                    if (!double.IsNaN(this.Min) || (!double.IsNaN(this.Max)))
-                    {
-                        context.LogError(ValidationHelper.ErrorTextMinMaxValueInvalidType, string.Empty, this);
-                    }
-                }
                 #endregion
 
                 #region Validate identity field
@@ -96,18 +46,6 @@ namespace nHydrate.Dsl
                 {
                     context.LogError(string.Format(ValidationHelper.ErrorTextInvalidIdentityColumn, this.Name), string.Empty, this);
                 }
-                #endregion
-
-                #region Varchar Max only supported in SQL 2008
-
-                //if (((ModelRoot)this.Root).SQLServerType == SQLServerTypeConstants.SQL2005)
-                //{
-                //  if (ModelHelper.SupportsMax(this.DataType) && this.Length == 0)
-                //  {
-                //    context.LogError(string.Format(ValidationHelper.ErrorTextColumnMaxNotSupported, this.Name), string.Empty, this);
-                //  }
-                //}
-
                 #endregion
 
                 #region Columns cannot be 0 length
@@ -143,7 +81,7 @@ namespace nHydrate.Dsl
 
                 #region Verify Datatypes for SQL 2005/2008
 
-                if (!this.DataType.IsSupportedType(this.Entity.nHydrateModel.SQLServerType))
+                if (!this.DataType.IsSupportedType())
                 {
                     context.LogError(string.Format(ValidationHelper.ErrorTextDataTypeNotSupported, this.Name), string.Empty, this);
                 }
@@ -199,23 +137,6 @@ namespace nHydrate.Dsl
 
                 #endregion
 
-                #region Verify Metadata
-
-                var metaKeyList = new List<string>();
-                foreach (var item in this.FieldMetadata)
-                {
-                    if (string.IsNullOrEmpty(item.Key) || metaKeyList.Contains(item.Key.ToLower()))
-                    {
-                        context.LogError(ValidationHelper.ErrorTextMetadataInvalid, string.Empty, this);
-                    }
-                    else
-                    {
-                        metaKeyList.Add(item.Key.ToString());
-                    }
-                }
-
-                #endregion
-
                 #region Identity Columns cannot have defaults
 
                 if (this.Identity != IdentityTypeConstants.None && !string.IsNullOrEmpty(this.Default))
@@ -229,20 +150,6 @@ namespace nHydrate.Dsl
                 if (this.IsReadOnly && !this.Nullable && (this.Identity != IdentityTypeConstants.Database) && string.IsNullOrEmpty(this.Default))
                 {
                     context.LogError(string.Format(ValidationHelper.ErrorTextColumnReadonlyNeedsDefault, this.Entity.Name + "." + this.Name), string.Empty, this);
-                }
-                #endregion
-
-                #region Verify Entity is in some module
-                if (this.Entity.nHydrateModel.UseModules && (this.Modules.Count == 0) && this.IsGenerated)
-                {
-                    context.LogError(string.Format(ValidationHelper.ErrorTextModuleItemNotInModule, this.Entity.Name + "." + this.Name), string.Empty, this);
-                }
-                #endregion
-
-                #region Identity cannot have range check
-                if ((!Double.IsNaN(this.Min) || !Double.IsNaN(this.Max)) && this.Identity != IdentityTypeConstants.None)
-                {
-                    context.LogError(string.Format(ValidationHelper.ErrorTextColumnNoRange4Identity, this.Entity.Name + "." + this.Name), string.Empty, this);
                 }
                 #endregion
 

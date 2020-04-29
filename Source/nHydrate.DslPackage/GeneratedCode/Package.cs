@@ -43,39 +43,11 @@ namespace nHydrate.DslPackage
 					"@AssociationToolboxBitmap;nHydrate.Dsl.dll", 
 					0xff00ff)]
 	[VSShell::ProvideStaticToolboxItem("nHydrate.DslPackage.nHydrateToolboxTab",
-					"@InheritanceToolboxItem;nHydrate.Dsl.dll", 
-					"nHydrate.DslPackage.InheritanceToolboxItem", 
-					"CF_TOOLBOXITEMCONTAINER,CF_TOOLBOXITEMCONTAINER_HASH,CF_TOOLBOXITEMCONTAINER_CONTENTS", 
-					"", 
-					"@InheritanceToolboxBitmap;nHydrate.Dsl.dll", 
-					0xff00ff)]
-	[VSShell::ProvideStaticToolboxItem("nHydrate.DslPackage.nHydrateToolboxTab",
 					"@ViewToolboxItem;nHydrate.Dsl.dll", 
 					"nHydrate.DslPackage.ViewToolboxItem", 
 					"CF_TOOLBOXITEMCONTAINER,CF_TOOLBOXITEMCONTAINER_HASH,CF_TOOLBOXITEMCONTAINER_CONTENTS", 
 					"View", 
 					"@ViewToolboxBitmap;nHydrate.Dsl.dll", 
-					0xff00ff)]
-	[VSShell::ProvideStaticToolboxItem("nHydrate.DslPackage.nHydrateToolboxTab",
-					"@FunctionToolboxItem;nHydrate.Dsl.dll", 
-					"nHydrate.DslPackage.FunctionToolboxItem", 
-					"CF_TOOLBOXITEMCONTAINER,CF_TOOLBOXITEMCONTAINER_HASH,CF_TOOLBOXITEMCONTAINER_CONTENTS", 
-					"Function", 
-					"@FunctionToolboxBitmap;nHydrate.Dsl.dll", 
-					0xff00ff)]
-	[VSShell::ProvideStaticToolboxItem("nHydrate.DslPackage.nHydrateToolboxTab",
-					"@StoredProcedureToolboxItem;nHydrate.Dsl.dll", 
-					"nHydrate.DslPackage.StoredProcedureToolboxItem", 
-					"CF_TOOLBOXITEMCONTAINER,CF_TOOLBOXITEMCONTAINER_HASH,CF_TOOLBOXITEMCONTAINER_CONTENTS", 
-					"StoredProcedure", 
-					"@StoredProcedureToolboxBitmap;nHydrate.Dsl.dll", 
-					0xff00ff)]
-	[VSShell::ProvideStaticToolboxItem("nHydrate.DslPackage.nHydrateToolboxTab",
-					"@ViewLinkToolboxItem;nHydrate.Dsl.dll", 
-					"nHydrate.DslPackage.ViewLinkToolboxItem", 
-					"CF_TOOLBOXITEMCONTAINER,CF_TOOLBOXITEMCONTAINER_HASH,CF_TOOLBOXITEMCONTAINER_CONTENTS", 
-					"", 
-					"@ViewLinkToolboxBitmap;nHydrate.Dsl.dll", 
 					0xff00ff)]
 	[VSShell::ProvideEditorFactory(typeof(nHydrateEditorFactory), 103, TrustLevel = VSShellInterop::__VSEDITORTRUSTLEVEL.ETL_AlwaysTrusted)]
 	[VSShell::ProvideEditorExtension(typeof(nHydrateEditorFactory), "." + Constants.DesignerFileExtension, 50)]
@@ -176,7 +148,7 @@ namespace nHydrate.DslPackage
 	/// <summary>
 	/// Double-derived class to allow easier code customization.
 	/// </summary>
-	[VSShell::ProvideMenuResource("1000.ctmenu", version: 226)]
+	[VSShell::ProvideMenuResource("1000.ctmenu", version: 234)]
 	[VSShell::ProvideToolboxItems(1)]
 	[global::Microsoft.VisualStudio.TextTemplating.VSHost.ProvideDirectiveProcessor(typeof(global::nHydrate.Dsl.nHydrateDirectiveProcessor), global::nHydrate.Dsl.nHydrateDirectiveProcessor.nHydrateDirectiveProcessorName, "A directive processor that provides access to nHydrate files")]
 	[global::System.Runtime.InteropServices.Guid(Constants.nHydratePackageId)]

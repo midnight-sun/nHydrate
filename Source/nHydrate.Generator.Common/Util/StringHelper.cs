@@ -1,43 +1,12 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
 using System;
 using System.Linq;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace nHydrate.Generator.Common.Util
 {
-	public class StringHelper
+	public static class StringHelper
 	{
-
-		private StringHelper()
-		{
-		}
-
 		public static bool GuidTryParse(string s, out Guid result)
 		{
 			if (s == null)
@@ -58,6 +27,7 @@ namespace nHydrate.Generator.Common.Util
 				return false;
 			}
 		}
+
 		public static string FirstCharToUpper(string inputString)
 		{
 			var sb = new StringBuilder();
@@ -76,45 +46,6 @@ namespace nHydrate.Generator.Common.Util
 				sb.Append(inputString.Substring(0, 1).ToLower()).Append(inputString.Substring(1, inputString.Length - 1));
 			}
 			return sb.ToString();
-
-		}
-
-		/// <summary>
-		/// Case Insensitive String Replace
-		/// </summary>
-		public static string StringReplace(string text, string oldValue, string newValue)
-		{
-			var iPos = text.ToLower().IndexOf(oldValue.ToLower());
-			var retval = string.Empty;
-			while (iPos != -1)
-			{
-				retval += text.Substring(0, iPos) + newValue;
-				text = text.Substring(iPos + oldValue.Length);
-				iPos = text.ToLower().IndexOf(oldValue.ToLower());
-			}
-			if (text.Length > 0)
-				retval += text;
-			return retval;
-		}
-
-		/// <summary>
-		/// Take the specified text and break it into lines and write it as a C# comment
-		/// </summary>
-		/// <param name="tabCount">The number of preceding tabs</param>
-		/// <param name="writer">The string builder to write the text</param>
-		/// <param name="text">The text to process</param>
-		public static void WriteGeneratedCommentSection(int tabCount, StringBuilder writer, string text)
-		{
-			if (string.IsNullOrEmpty(text)) return;
-			if (tabCount < 0) tabCount = 0;
-			text = text.Replace("\r\n", "\n");
-			text = text.Replace("\r", "\n");
-			var arr = text.Split('\n');
-
-			foreach (var s in arr)
-			{
-				writer.AppendLine(new string('	', tabCount) + "/// " + s);
-			}
 
 		}
 
@@ -161,21 +92,7 @@ namespace nHydrate.Generator.Common.Util
 				.ForEach(x => sb.AppendLine(prepend + x));
 		}
 
-		#region String Match
-		public static bool Match(object s1, string s2, bool ignoreCase)
-		{
-			if (s1 == null)
-				if (s2 == null) return true;
-				else return false;
-			else
-				if (s2 == null) return false;
-				else if (s1.ToString().Length != s2.Length) return false;
-				else if (s1.ToString().Length == 0) return true;
-
-			return (String.Compare(s1.ToString(), s2, ignoreCase) == 0);
-		}
-
-		public static bool Match(string s1, string s2, bool ignoreCase)
+		public static bool Match(this string s1, string s2, bool ignoreCase = true)
 		{
 			if (s1 == null)
 				if (s2 == null) return true;
@@ -188,53 +105,12 @@ namespace nHydrate.Generator.Common.Util
 			return (String.Compare(s1, s2, ignoreCase) == 0);
 		}
 
-		public static bool Match(string s1, string s2)
-		{
-			return Match(s1, s2, true);
-		}
-		#endregion
-
 		#region Variable Case Conversion
-		public static string MakeValidDatabaseCaseVariableName(string inputString)
-		{
-			var pascalCase = MakeValidPascalCaseVariableName(inputString);
-			return PascalCaseToDatabase(pascalCase);
-		}
-
-		public static string MakeValidCamelCaseVariableName(string inputString)
-		{
-			var camelCase = MakeValidPascalCaseVariableName(inputString);
-			if (camelCase.Length > 0)
-			{
-				camelCase = camelCase.Insert(0, camelCase[0].ToString().ToLower());
-				camelCase = camelCase.Remove(1, 1);
-			}
-			return camelCase;
-		}
-
-		public static string MakeValidPascalCaseVariableName(string inputString)
-		{
-			var output = new StringBuilder();
-			var regexp = "[A-Z,a-z,0-9]+";
-			var matches = Regex.Matches(inputString, regexp);
-			foreach (Match match in matches)
-			{
-				var appendString = match.Value;
-				appendString = appendString.Insert(0, appendString[0].ToString().ToUpper());
-				appendString = appendString.Remove(1, 1);
-				output.Append(appendString);
-			}
-			var returnVal = output.ToString();
-			returnVal = returnVal.TrimStart(new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' });
-			if (returnVal.Length < 0)
-				throw new Exception("Cannot turn string( " + inputString + " ) into a valid variable name");
-			return returnVal;
-		}
 
 		public static string DatabaseNameToCamelCase(string databaseName)
 		{
 			databaseName = databaseName.ToLower();
-			var regexp = "_.";
+			const string regexp = "_.";
 			var digitregex = new Regex(regexp);
 			var parameterName = digitregex.Replace(databaseName, new MatchEvaluator(ReplaceWithUpper));
 			return parameterName;
@@ -251,19 +127,6 @@ namespace nHydrate.Generator.Common.Util
 			return pascalCase;
 		}
 
-		public static string PascalCaseToDatabase(string pascalCase)
-		{
-			var digitregex = new Regex("(?<caps>[A-Z])");
-			var parameterName = digitregex.Replace(pascalCase, "_$+");
-			parameterName = parameterName.ToLower().TrimStart('_');
-			return parameterName;
-		}
-
-		public static string CamelCaseToDatabase(string camelCase)
-		{
-			return PascalCaseToDatabase(camelCase);
-		}
-
 		private static string ReplaceWithUpper(Match m)
 		{
 			var character = m.ToString().TrimStart('_');
@@ -272,7 +135,7 @@ namespace nHydrate.Generator.Common.Util
 		#endregion
 
 		#region File Path Conversions
-		public static string EnsureDirectorySeperatorAtEnd(string directory)
+		public static string EnsureDirectorySeparatorAtEnd(string directory)
 		{
 			if (!(directory.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString())))
 			{
@@ -282,51 +145,5 @@ namespace nHydrate.Generator.Common.Util
 		}
 		#endregion
 
-		#region byte array conversions
-		public static MemoryStream StringToMemoryStream(string str)
-		{
-			var ms = new MemoryStream(StringToByteArray(str));
-			return ms;
-		}
-
-		public static String MemoryStreamToString(MemoryStream memStream)
-		{
-			return ByteArrayToString(memStream.GetBuffer(), (int)memStream.Length);
-		}
-
-		public static Byte[] StringToByteArray(string str)
-		{
-			var enc = new UTF8Encoding();
-			return enc.GetBytes(str);
-		}
-
-		public static string ByteArrayToHexString(byte[] bytes)
-		{
-			var hexString = string.Empty;
-			for (var i = 0; i < bytes.Length; i++)
-			{
-				hexString += bytes[i].ToString("X2");
-			}
-			return hexString;
-		}
-
-
-		public static string ByteArrayToString(byte[] byteArray)
-		{
-			var enc = new UTF8Encoding();
-			return enc.GetString(byteArray, 0, byteArray.Length);
-		}
-
-		public static string ByteArrayToString(byte[] byteArray, Encoding encoder)
-		{
-			return encoder.GetString(byteArray, 0, byteArray.Length);
-		}
-
-		public static string ByteArrayToString(byte[] byteArray, int length)
-		{
-			var enc = new UTF8Encoding();
-			return enc.GetString(byteArray, 0, length);
-		}
-		#endregion
 	}
 }

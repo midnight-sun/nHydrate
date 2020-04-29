@@ -11,7 +11,6 @@
 using System;
 using System.Linq;
 using System.Collections;
-using System.Data.SqlClient;
 using System.Data;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -21,6 +20,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO.Compression;
 using System.Diagnostics;
+using Microsoft.Data.SqlClient;
 
 namespace PROJECTNAMESPACE
 {
@@ -56,83 +56,6 @@ namespace PROJECTNAMESPACE
         {
         }
 
-        private static List<string> _serverList = new List<string>();
-        internal static string[] GetServers()
-        {
-            if (_serverList.Count == 0)
-            {
-                string[] retval = null;
-
-                var txt = string.Empty;
-                var henv = IntPtr.Zero;
-                var hconn = IntPtr.Zero;
-                var inString = new StringBuilder(SQL_DRIVER_STR);
-                var outString = new StringBuilder(DEFAULT_RESULT_SIZE);
-                var inStringLength = (short)inString.Length;
-                var lenNeeded = (short)0;
-
-                try
-                {
-                    if (SQL_SUCCESS == SQLAllocHandle(SQL_HANDLE_ENV, henv, out henv))
-                    {
-                        if (SQL_SUCCESS == SQLSetEnvAttr(henv, SQL_ATTR_ODBC_VERSION, (IntPtr)SQL_OV_ODBC3, 0))
-                        {
-                            if (SQL_SUCCESS == SQLAllocHandle(SQL_HANDLE_DBC, henv, out hconn))
-                            {
-                                if (SQL_NEED_DATA == SQLBrowseConnect(hconn, inString, inStringLength, outString,
-                                    DEFAULT_RESULT_SIZE, out lenNeeded))
-                                {
-                                    if (DEFAULT_RESULT_SIZE < lenNeeded)
-                                    {
-                                        outString.Capacity = lenNeeded;
-                                        if (SQL_NEED_DATA != SQLBrowseConnect(hconn, inString, inStringLength, outString,
-                                            lenNeeded, out lenNeeded))
-                                        {
-                                            throw new Exception("Unabled to aquire SQL Servers from ODBC driver.");
-                                        }
-                                    }
-                                    txt = outString.ToString();
-                                    int start = txt.IndexOf("{") + 1;
-                                    int len = txt.IndexOf("}") - start;
-                                    if ((start > 0) && (len > 0))
-                                    {
-                                        txt = txt.Substring(start, len);
-                                    }
-                                    else
-                                    {
-                                        txt = string.Empty;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
-                finally
-                {
-                    if (hconn != IntPtr.Zero)
-                    {
-                        SQLFreeHandle(SQL_HANDLE_DBC, hconn);
-                    }
-                    if (henv != IntPtr.Zero)
-                    {
-                        SQLFreeHandle(SQL_HANDLE_ENV, hconn);
-                    }
-                }
-
-                if (txt.Length > 0)
-                {
-                    retval = txt.Split(",".ToCharArray());
-                }
-
-                _serverList.AddRange(retval);
-            }
-            return _serverList.ToArray();
-        }
-
         internal static bool TestConnectionString(string connectString)
         {
             //Connection should be fast
@@ -141,7 +64,7 @@ namespace PROJECTNAMESPACE
             connectString = sb.ToString();
 
             var valid = false;
-            using (var conn = new System.Data.SqlClient.SqlConnection())
+            using (var conn = new SqlConnection())
             {
                 try
                 {
@@ -162,157 +85,6 @@ namespace PROJECTNAMESPACE
             return valid;
         }
 
-        internal static List<HistoryItem> GetHistory(string connectionString)
-        {
-            var retval = new List<HistoryItem>();
-            var settings = new nHydrateSetting();
-            settings.Load(connectionString);
-            return settings.History;
-        }
-
-        internal static string BuildConnectionString(bool integratedSecurity, string databaseName, string serverName, string userName, string password)
-        {
-            var connStr = new StringBuilder();
-            var sb = new SqlConnectionStringBuilder();
-            sb.IntegratedSecurity = integratedSecurity;
-            sb.InitialCatalog = databaseName;
-            sb.DataSource = serverName;
-            sb.ConnectTimeout = 604800;
-            if (!integratedSecurity)
-            {
-                sb.UserID = userName;
-                sb.Password = password;
-            }
-            return sb.ToString();
-        }
-
-        internal static string[] GetDatabaseNames(string connectString)
-        {
-            var databaseNames = new ArrayList();
-            using (var conn = new System.Data.SqlClient.SqlConnection())
-            {
-                SqlDataReader databaseReader = null;
-                SqlDataReader existsReader = null;
-
-                try
-                {
-                    conn.ConnectionString = connectString;
-                    conn.Open();
-
-                    var cmdDatabases = new SqlCommand();
-                    cmdDatabases.CommandText = "use [master] select name from sysdatabases";
-                    cmdDatabases.CommandType = System.Data.CommandType.Text;
-                    cmdDatabases.Connection = conn;
-                    databaseReader = cmdDatabases.ExecuteReader();
-                    while (databaseReader.Read())
-                    {
-                        databaseNames.Add(databaseReader["name"]);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine(ex.ToString());
-                    databaseNames.Clear();
-                }
-                finally
-                {
-                    if (databaseReader != null)
-                        databaseReader.Close();
-                    if (conn != null)
-                        conn.Close();
-                }
-
-                var itemsToRemove = new ArrayList();
-                foreach (string dbName in databaseNames)
-                {
-                    try
-                    {
-                        conn.Open();
-                        var cmdUserExist = new SqlCommand();
-                        cmdUserExist.CommandText = "use [" + dbName + "] select case when Permissions()&254=254 then 1 else 0 end as hasAccess";
-                        cmdUserExist.CommandType = System.Data.CommandType.Text;
-                        cmdUserExist.Connection = conn;
-                        existsReader = cmdUserExist.ExecuteReader();
-                        if (existsReader.Read())
-                        {
-                            try
-                            {
-                                if (int.Parse(existsReader["hasAccess"].ToString()) == 0)
-                                {
-                                    itemsToRemove.Add(dbName);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine(ex.ToString());
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine(ex.ToString());
-                        itemsToRemove.Add(dbName);
-                    }
-                    finally
-                    {
-                        if (existsReader != null)
-                            existsReader.Close();
-                        if (conn != null)
-                            conn.Close();
-                    }
-                }
-
-                foreach (string removedItem in itemsToRemove)
-                {
-                    databaseNames.Remove(removedItem);
-                }
-            }
-
-            return (string[])databaseNames.ToArray(typeof(string));
-        }
-
-        internal static bool HasCreatePermissions(string connectString)
-        {
-            var returnVal = false;
-            using (var conn = new System.Data.SqlClient.SqlConnection())
-            {
-                SqlDataReader existsReader = null;
-                try
-                {
-                    conn.ConnectionString = connectString;
-                    conn.Open();
-                    var cmdUserExist = new SqlCommand();
-                    cmdUserExist.CommandText = "use [master] select case when Permissions()&1=1 then 1 else 0 end as hasAccess";
-                    cmdUserExist.CommandType = System.Data.CommandType.Text;
-                    cmdUserExist.Connection = conn;
-                    existsReader = cmdUserExist.ExecuteReader();
-                    if (existsReader.Read())
-                    {
-                        try
-                        {
-                            if (int.Parse(existsReader["hasAccess"].ToString()) == 1)
-                            {
-                                returnVal = true;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine(ex.ToString());
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine(ex.ToString());
-                }
-                finally
-                {
-                    if (existsReader != null)
-                        existsReader.Close();
-                }
-            }
-            return returnVal;
-        }
         #endregion
 
         #region create database
@@ -320,7 +92,7 @@ namespace PROJECTNAMESPACE
         {
             try
             {
-                using (var conn = new System.Data.SqlClient.SqlConnection())
+                using (var conn = new SqlConnection())
                 {
                     conn.ConnectionString = setup.MasterConnectionString;
                     conn.Open();
@@ -485,13 +257,20 @@ namespace PROJECTNAMESPACE
                 return;
             }
 
+            //Test for empty statements
             var originalSQL = sql.Trim();
             sql = originalSQL;
             if (string.IsNullOrEmpty(sql)) return;
 
+            //Test for noop statements (all comments/empty strings)
+            var lines = sql.BreakLines().TrimAll();
+            lines.RemoveAll(x => x.StartsWith("--"));
+            lines.RemoveAll(x => x == "");
+            if (!@lines.Any()) return;
+            lines = sql.BreakLines().TrimAll(); //Reset
+
             #region Get Script Key
             var isBody = false;
-            var lines = sql.Split(new char[] { '\n' }, StringSplitOptions.None).ToList();
             var key = Guid.NewGuid();
             var l = lines.FirstOrDefault(x => x.StartsWith("--MODELID: "));
             if (l != null)
@@ -527,7 +306,7 @@ namespace PROJECTNAMESPACE
                 {
                     if (!setup.CheckOnly)
                     {
-                        var dropCommand = new System.Data.SqlClient.SqlCommand(dropSQL, connection);
+                        var dropCommand = new SqlCommand(dropSQL, connection);
                         dropCommand.Transaction = transaction;
                         dropCommand.CommandTimeout = 0;
                         SqlServers.ExecuteCommand(dropCommand);
@@ -540,7 +319,7 @@ namespace PROJECTNAMESPACE
             }
             #endregion
 
-            var command = new System.Data.SqlClient.SqlCommand(sql, connection);
+            var command = new SqlCommand(sql, connection);
             command.Transaction = transaction;
             command.CommandTimeout = 0;
             try
@@ -561,13 +340,17 @@ namespace PROJECTNAMESPACE
                     _timer.Restart();
                     SqlServers.ExecuteCommand(command);
                     _timer.Stop();
-                    //System.Diagnostics.Debug.WriteLine("Elapsed: " + _timer.ElapsedMilliseconds + " / " + sql.Split('\n').First()); //Alert user of what is running
+
+                    if (!string.IsNullOrEmpty(setup.LogFilename))
+                    {
+                        LoadSql(setup.LogFilename, sql, _timer.ElapsedMilliseconds);
+                    }
 
                     if (successOrderScripts != null && isBody)
                         successOrderScripts.Add(key);
                 }
             }
-            catch (System.Data.SqlClient.SqlException sqlexp)
+            catch (SqlException sqlexp)
             {
                 if ((sqlexp.Number == 1779) && sql.StartsWith("--PRIMARY KEY FOR TABLE"))
                 {
@@ -601,13 +384,48 @@ namespace PROJECTNAMESPACE
             }
         }
 
+        private static void LoadSql(string fileName, string sql, long elapsed)
+        {
+            try
+            {
+                System.Xml.Linq.XDocument xmlDoc = null;
+                System.Xml.Linq.XElement rootElement = null;
+                const string RootName = "SQL";
+                if (File.Exists(fileName))
+                {
+                    xmlDoc = System.Xml.Linq.XDocument.Load(fileName);
+                    rootElement = xmlDoc.Element(RootName);
+                }
+                else
+                {
+                    xmlDoc = new System.Xml.Linq.XDocument();
+                    rootElement = new System.Xml.Linq.XElement(RootName);
+                    xmlDoc.Add(rootElement);
+                }
+
+                var parentElement = new System.Xml.Linq.XElement("Entry",
+                    new System.Xml.Linq.XAttribute("datetime", DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fff")),
+                    new System.Xml.Linq.XAttribute("elapsed", elapsed.ToString()));
+                parentElement.Add(new System.Xml.Linq.XElement("sql", new System.Xml.Linq.XCData(sql)));
+                rootElement.Add(parentElement);
+                xmlDoc.Save(fileName);
+
+            }
+            catch (Exception ex)
+            {
+                //Do Nothing
+            }
+        }
+
         private static string TheDate => System.DateTime.Now.ToString("HH:mm:ss");
 
         private static bool SkipScriptPrompt(InvalidSQLException ex)
         {
-            var F = new SqlErrorForm();
-            F.Setup(ex, true);
-            return (F.ShowDialog() == System.Windows.Forms.DialogResult.OK);
+            //TODO: Allow a way to allow override from parameters
+            //This used to popup a dialog and ask for "OK"
+            //for now just logging and skipping
+            Console.WriteLine(ex.Message);
+            return true;
         }
 
         private static void CallMethod(string text, SqlConnection connection, SqlTransaction transaction, InstallSetup setup)
@@ -945,7 +763,7 @@ namespace PROJECTNAMESPACE
         {
             try
             {
-                using (var conn = new System.Data.SqlClient.SqlConnection())
+                using (var conn = new SqlConnection())
                 {
                     conn.ConnectionString = connectionString;
                     conn.Open();
@@ -1010,7 +828,7 @@ namespace PROJECTNAMESPACE
         {
             try
             {
-                using (var conn = new System.Data.SqlClient.SqlConnection())
+                using (var conn = new SqlConnection())
                 {
                     conn.ConnectionString = connectionString;
                     conn.Open();
@@ -1135,13 +953,13 @@ namespace PROJECTNAMESPACE
             return this.name + " / " + this.Hash;
         }
 
-        public static nHydrateDbObjectList Load(string connectionString, string modelKey, System.Data.SqlClient.SqlTransaction transaction)
+        public static nHydrateDbObjectList Load(string connectionString, string modelKey, SqlTransaction transaction)
         {
             var retval = new nHydrateDbObjectList();
-            System.Data.SqlClient.SqlConnection conn = null;
+            SqlConnection conn = null;
             if (transaction == null)
             {
-                conn = new System.Data.SqlClient.SqlConnection(connectionString);
+                conn = new SqlConnection(connectionString);
                 conn.Open();
             }
             else
@@ -1205,12 +1023,12 @@ namespace PROJECTNAMESPACE
             return retval;
         }
 
-        public static void Save(string connectionString, string modelKey, IEnumerable<nHydrateDbObject> list, System.Data.SqlClient.SqlTransaction transaction)
+        public static void Save(string connectionString, string modelKey, IEnumerable<nHydrateDbObject> list, SqlTransaction transaction)
         {
-            System.Data.SqlClient.SqlConnection conn = null;
+            SqlConnection conn = null;
             if (transaction == null)
             {
-                conn = new System.Data.SqlClient.SqlConnection(connectionString);
+                conn = new SqlConnection(connectionString);
                 conn.Open();
             }
             else

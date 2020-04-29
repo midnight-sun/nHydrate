@@ -1,58 +1,23 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Collections;
 using System.Windows.Forms;
 
-namespace nHydrate.Generator.Common.GeneratorFramework
+namespace nHydrate.Generator
 {
 	public abstract class ModelObjectTreeNode : TreeNode
 	{
 
 		public abstract void Refresh();
-		protected INHydrateModelObjectController _controller = null;
 
-		public INHydrateModelObjectController Controller
-		{
-			get { return _controller; }
-		}
+        public INHydrateModelObjectController Controller { get; } = null;
 
-		#region Constructor
+        #region Constructor
 
 		public ModelObjectTreeNode(INHydrateModelObjectController controller)
 		{      
-			_controller = controller;
-			_controller.ItemChanged += new ItemChanagedEventHandler(ControllerItemChanged);
-			_object = _controller.Object;
-			this.Refresh();
-		}
-
-		private void ControllerItemChanged(object sender, System.EventArgs e)
-		{
-			this.Object.Dirty = true;
+			Controller = controller;
+			Object = Controller.Object;
 			this.Refresh();
 		}
 
@@ -60,13 +25,9 @@ namespace nHydrate.Generator.Common.GeneratorFramework
 
 		#region Object
 
-		protected INHydrateModelObject _object = null;
-		public virtual INHydrateModelObject Object
-		{
-			get { return _object; }
-		}
+        public virtual INHydrateModelObject Object { get; } = null;
 
-		#endregion
+        #endregion
 
 		#region RefreshDeep
 
@@ -137,7 +98,7 @@ namespace nHydrate.Generator.Common.GeneratorFramework
 				var needUpdate = false;        
 				for(var ii=0;ii<nodeList.Length;ii++)
 				{
-					if (!Util.StringHelper.Match(this.Nodes[ii].Text, nodeList[ii].Text, true))
+					if (!nHydrate.Generator.Common.Util.StringHelper.Match(this.Nodes[ii].Text, nodeList[ii].Text, true))
 						needUpdate = true;
 				}
 

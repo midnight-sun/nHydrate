@@ -1,134 +1,78 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using nHydrate.Generator.Common.GeneratorFramework;
 
-namespace nHydrate.Generator.Common.GeneratorFramework
+namespace nHydrate.Generator
 {
     public abstract class BaseModelObject : INHydrateModelObject
     {
         #region Class Members
 
-        protected string _key = Guid.NewGuid().ToString();
         protected INHydrateModelObject _root;
-        protected bool _dirty = false;
-        protected bool _cancelUIEvents = false;
-        protected INHydrateModelObjectController _controller = null;
 
         #endregion
 
         #region Constructor
 
-        public BaseModelObject(INHydrateModelObject root)
+        protected BaseModelObject(INHydrateModelObject root)
         {
             _root = root;
         }
 
-        #endregion
-
-        #region Events
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        public event System.EventHandler DirtyChanged;
-
-        protected void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
+        protected BaseModelObject()
         {
-            this.Dirty = true;
-
-            //Cancel UI events if necessary
-            if (!this.CancelUIEvents)
-            {
-                if (this.PropertyChanged != null)
-                    this.PropertyChanged(sender, e);
-            }
-        }
-
-        protected void OnDirtyChanged(object sender, System.EventArgs e)
-        {
-            if (this.DirtyChanged != null)
-                this.DirtyChanged(sender, e);
+            //This should only be used for BaseModelCollection<T>
         }
 
         #endregion
 
         #region Property Implementations
 
-        [Browsable(false)]
-        public virtual INHydrateModelObjectController Controller
+        public virtual Dictionary<string, IModelConfiguration> ModelConfigurations { get; set; }
+
+        public virtual INHydrateModelObjectController Controller { get; set; } = null;
+
+        protected event EventHandler RootReset;
+        protected virtual void OnRootReset(System.EventArgs e)
         {
-            get { return _controller; }
-            set { _controller = value; }
+            if (this.RootReset != null)
+                this.RootReset(this, System.EventArgs.Empty);
         }
 
-
-        [Browsable(false)]
         public virtual INHydrateModelObject Root
         {
             get { return (INHydrateModelObject)_root; }
-        }
-
-
-        [Browsable(false)]
-        public virtual string Key
-        {
-            get { return _key; }
-        }
-
-        [Browsable(false)]
-        public virtual bool Dirty
-        {
-            get { return _dirty; }
-            set
+            protected internal set //need for BaseModelCollection<T>
             {
-                //if (_dirty != value)
-                //{
-                _dirty = value;
-                this.OnDirtyChanged(this, new System.EventArgs());
-                if ((this.Dirty) && (this.Root != null) && (this != this.Root))
-                    this.Root.Dirty = true;
-                //}
+                if (value == null)
+                    throw new Exception("Cannot set root to null.");
+                _root = value;
+                this.OnRootReset(System.EventArgs.Empty);
             }
         }
 
-        [Browsable(false)]
-        public virtual bool CancelUIEvents
+        public int Id { get; protected set; }
+
+        public void ResetId(int newId)
         {
-            get { return _cancelUIEvents; }
-            set { _cancelUIEvents = value; }
+            this.Id = newId;
         }
 
-        /// <summary>
-        /// Resets the unique key
-        /// </summary>
-        /// <param name="newKey"></param>
+        public virtual void SetKey(string key)
+        {
+            this.Key = key;
+        }
+
+        public string Name { get; set; } = string.Empty;
+
+        public virtual string Key { get; protected set; } = Guid.NewGuid().ToString();
+
         public void ResetKey(string newKey)
         {
             if (string.IsNullOrEmpty(newKey))
                 throw new Exception("The key value must have a value!");
-            _key = newKey;
+            this.Key = newKey;
         }
 
         #endregion

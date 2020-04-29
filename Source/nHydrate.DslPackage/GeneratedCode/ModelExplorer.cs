@@ -44,14 +44,8 @@ namespace nHydrate.DslPackage
 				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.EntityHasEntities.DomainClassId }); 
 				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.EntityHasEntities.DomainClassId }); 
 				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.nHydrateModelHasRelationFields.DomainClassId }); 
-				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.CompositeHasFields.DomainClassId }); 
-				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.EntityReferencesModules.DomainClassId }); 
-				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.nHydrateModelHasRelationModules.DomainClassId }); 
 				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.EntityHasEntities.DomainClassId }); 
 				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.EntityHasEntities.DomainClassId }); 
-				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.nHydrateModelHasRelationModules.DomainClassId }); 
-				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.EntityHasComposites.DomainClassId }); 
-				this.AddHiddenPath( new global::System.Guid[] { global::nHydrate.Dsl.nHydrateModelHasIndexModules.DomainClassId }); 
 			
 			}
 			catch (global::System.InvalidOperationException)
@@ -74,38 +68,11 @@ namespace nHydrate.DslPackage
 			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.View.DomainClassId, 
 							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("ViewExplorerImage")), 
 							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.StoredProcedureField.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("StoredProcedureFieldExplorerImage")), 
-							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.StoredProcedure.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("StoredProcedureExplorerImage")), 
-							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.StoredProcedureParameter.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("StoredProcedureParameterExplorerImage")), 
-							false); 
 			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.ViewField.DomainClassId, 
 							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("ViewFieldExplorerImage")), 
 							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.Composite.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("CompositeExplorerImage")), 
-							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.EntityMetadata.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("EntityMetadataExplorerImage")), 
-							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.FieldMetadata.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("FieldMetadataExplorerImage")), 
-							false); 
 			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.nHydrateModel.DomainClassId, 
 							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("nHydrateModelExplorerImage")), 
-							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.Function.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("FunctionExplorerImage")), 
-							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.FunctionParameter.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("FunctionParameterExplorerImage")), 
-							false); 
-			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.FunctionField.DomainClassId, 
-							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("FunctionFieldExplorerImage")), 
 							false); 
 			this.AddExplorerNodeCustomSetting(global::nHydrate.Dsl.Index.DomainClassId, 
 							DslDiagrams::ImageHelper.GetImage(resourceManager.GetObject("IndexExplorerImage")), 
@@ -170,20 +137,6 @@ namespace nHydrate.DslPackage
 			
 			switch ( modelElement.GetDomainClass().Id.ToString( "D", System.Globalization.CultureInfo.InvariantCulture) )
 			{
-				case "8022b63d-c856-4a0e-9881-c24888e718c5":	// EntityMetadata.DomainClassId
-				{
-					domainPropertyInfo = directory.FindDomainProperty( global::nHydrate.Dsl.EntityMetadata.KeyDomainPropertyId);
-					redirectedElement = modelElement;
-				}			
-				break;
-				
-				case "e4d98918-02cc-4cb0-94fc-2da89080f5be":	// FieldMetadata.DomainClassId
-				{
-					domainPropertyInfo = directory.FindDomainProperty( global::nHydrate.Dsl.FieldMetadata.KeyDomainPropertyId);
-					redirectedElement = modelElement;
-				}			
-				break;
-				
 				case "ced4ceba-e07d-4396-b2fe-a981c60933d0":	// Index.DomainClassId
 				{
 					domainPropertyInfo = directory.FindDomainProperty( global::nHydrate.Dsl.Index.DefinitionDomainPropertyId);

@@ -1,28 +1,3 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -57,10 +32,7 @@ namespace nHydrate.Generator.Common.GeneratorFramework
 
         protected virtual void OnProjectItemGenerated(object sender, ProjectItemGeneratedEventArgs pigArgs)
         {
-            if (ProjectItemGenerated != null)
-            {
-                this.ProjectItemGenerated(sender, pigArgs);
-            }
+            ProjectItemGenerated?.Invoke(sender, pigArgs);
         }
 
         protected virtual void OnProjectItemDeleted(object sender, ProjectItemDeletedEventArgs pigArgs)
@@ -94,13 +66,6 @@ namespace nHydrate.Generator.Common.GeneratorFramework
 
         public static IGenerator OpenModel(string filePath)
         {
-            var loadResult = LoadResultConstants.Failed;
-            return OpenModel(filePath, out loadResult);
-        }
-
-        public static IGenerator OpenModel(string filePath, out LoadResultConstants loadResult)
-        {
-            loadResult = LoadResultConstants.Failed;
             IGenerator retVal = null;
             var file = new FileInfo(filePath);
             var xmlAttributeAssembleValue = string.Empty;
@@ -119,14 +84,8 @@ namespace nHydrate.Generator.Common.GeneratorFramework
                     try { assemblyUri = new Uri(xmlAttributeAssembleValue); }
                     catch { }
 
-                    //Change the old name to the new name
-                    if (xmlAttributeAssembleValue.ToLower() == "widgetsphere.generator.dll")
-                        xmlAttributeAssembleValue = "nHydrate.Generator.dll";
-
                     if (assemblyUri != null) assemblyName = new FileInfo(assemblyUri.AbsolutePath);
                     else assemblyName = new FileInfo(xmlAttributeAssembleValue);
-
-                    //processKey = UIHelper.ProgressingStarted();
 
                     var assemblyFile = Path.Combine(AddinAppData.Instance.ExtensionDirectory, assemblyName.Name);
                     var currentAssemblyFile = new FileInfo(assemblyFile);
@@ -135,22 +94,15 @@ namespace nHydrate.Generator.Common.GeneratorFramework
                         retVal = (IGenerator)ReflectionHelper.CreateInstance(currentAssemblyFile.FullName, type);
                         retVal.XmlLoad(xDoc.DocumentElement);
                         retVal.FileName = filePath;
-                        //UIHelper.ProgressingComplete(processKey);
-                        loadResult = retVal.ProcessPostModelLoad();
                     }
                     else
                     {
-                        //UIHelper.ProgressingComplete(processKey);
                         GlobalHelper.ShowError("The model cannot be opened. You do not have the appropriate assembly. " + currentAssemblyFile.FullName);
                     }
                 }
                 catch (Exception ex)
                 {
                     throw new Exception(file.FullName + " does not have the correct format.", ex);
-                }
-                finally
-                {
-                    //UIHelper.ProgressingComplete(processKey);
                 }
             }
             else
@@ -224,45 +176,6 @@ namespace nHydrate.Generator.Common.GeneratorFramework
             else
                 return true;
         }
-
-        //public static IDictionary<ModelUIAttribute, IModelEditor> GetModelEditors(string loadingFile)
-        //{
-        //  var retVal = new Dictionary<ModelUIAttribute, IModelEditor>();
-        //  var fi = new FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        //  var types = ReflectionHelper.GetCreatableObjectImplementsInterface(typeof(IModelEditor), fi.DirectoryName);
-        //  foreach (var currentType in types)
-        //  {
-        //    var customAttributes = currentType.GetCustomAttributes(typeof(ModelUIAttribute), true);
-        //    var attribute = customAttributes.FirstOrDefault() as ModelUIAttribute;
-        //    var fileToLoad = new FileInfo(loadingFile);
-        //    if (!fileToLoad.Exists)
-        //      throw new Exception("File To Load Does Not Exist: " + loadingFile);
-
-        //    if (fileToLoad.Length < 5)
-        //    {
-        //      //CreateNewModelFile(loadingFile);
-        //    }
-
-        //    var modelFileGuid = GeneratorHelper.ModelFileGuid(loadingFile);
-        //    if (attribute != null && modelFileGuid == attribute.ProjectGuid)
-        //    {
-        //      retVal.Add(attribute, (IModelEditor)ReflectionHelper.CreateInstance(currentType));
-        //    }
-        //  }
-        //  return retVal;
-        //}
-
-        //public static void ShowSettings()
-        //{
-        //  var F = new SettingsForm();
-        //  F.ShowDialog();
-        //}
-
-        //public static void ShowNagScreen()
-        //{
-        //  var nsf = new NagScreenForm();
-        //  nsf.ShowDialog();
-        //}
 
         private static Guid ModelFileGuid(string fileName)
         {
@@ -469,16 +382,9 @@ namespace nHydrate.Generator.Common.GeneratorFramework
 
         #region Public Generate Methods
 
-        private delegate void AsyncDelegate(IGenerator generator, Type projectGeneratorType);
         public IGenerator _generator;
         public void GenerateAll(IGenerator generator, List<Type> excludeList)
         {
-            //Validate that tool is licensed if the model is using licensed features
-            //if (generator.InLicense)
-            //{
-            //  throw new nHydrate.Generator.Common.Exceptions.LicenseException();
-            //}
-
             try
             {
                 EnvDTEHelper.Instance.ClearCache();
@@ -548,20 +454,6 @@ namespace nHydrate.Generator.Common.GeneratorFramework
             }
         }
 
-        //private void LoadProject(IGenerator generator, Type projectGeneratorType)
-        //{
-        //  try
-        //  {
-        //    var projectGenerator = GetProjectGenerator(projectGeneratorType);
-        //    projectGenerator.Initialize(generator.Model);
-        //    projectGenerator.LoadProject();
-        //  }
-        //  catch (Exception ex)
-        //  {
-        //    throw;
-        //  }
-        //}
-
         private void CreateProject(IGenerator generator, Type projectGeneratorType)
         {
             try
@@ -576,7 +468,7 @@ namespace nHydrate.Generator.Common.GeneratorFramework
             }
         }
 
-        private IProjectGenerator GetProjectGenerator(Type projectGeneratorType)
+        public IProjectGenerator GetProjectGenerator(Type projectGeneratorType)
         {
             try
             {
@@ -708,14 +600,6 @@ namespace nHydrate.Generator.Common.GeneratorFramework
             return _errorList;
         }
 
-        public static bool IsItemInProject(string projectName, string projectItemName)
-        {
-            var project = EnvDTEHelper.Instance.GetProject(projectName);
-            var fi = new FileInfo(project.FullName);
-            var fileName = fi.DirectoryName + projectItemName;
-            return File.Exists(fileName);
-        }
-
         private readonly List<string> processedFiles = new List<string>();
         private static Dictionary<string, Project> projectCache = new Dictionary<string, Project>();
         private int _doEventCount = 0;
@@ -775,23 +659,26 @@ namespace nHydrate.Generator.Common.GeneratorFramework
                         projectCache.Add(e.ProjectName, project);
                     }
 
-                    parent = EnvDTEHelper.Instance.GetProjectItem(e.ProjectName, e.ParentItemName, e.ParentItemType);
-
-                    //This should not happen. If do dump the cache project and requery
-                    if (parent == null && fromCache)
+                    if (!string.IsNullOrEmpty(e.ParentItemName))
                     {
-                        if (projectCache.ContainsKey(e.ProjectName))
-                            projectCache.Remove(e.ProjectName);
-                        project = EnvDTEHelper.Instance.GetProject(e.ProjectName);
-                        projectCache.Add(e.ProjectName, project);
                         parent = EnvDTEHelper.Instance.GetProjectItem(e.ProjectName, e.ParentItemName, e.ParentItemType);
+
+                        //This should not happen. If do dump the cache project and requery
+                        if (parent == null && fromCache)
+                        {
+                            if (projectCache.ContainsKey(e.ProjectName))
+                                projectCache.Remove(e.ProjectName);
+                            project = EnvDTEHelper.Instance.GetProject(e.ProjectName);
+                            projectCache.Add(e.ProjectName, project);
+                            parent = EnvDTEHelper.Instance.GetProjectItem(e.ProjectName, e.ParentItemName, e.ParentItemType);
+                        }
                     }
 
                 }
 
                 var fileStateInfo = new FileStateInfo();
                 ProjectItem projectItem = null;
-                if (e.ParentItemName != string.Empty)
+                if (!string.IsNullOrEmpty(e.ParentItemName))
                 {
                     if (e.ContentType == ProjectItemContentType.String)
                         projectItem = EnvDTEHelper.Instance.AddProjectItem(project, parent, e.ProjectItemName, e.ProjectItemContent, e.Overwrite, out fileStateInfo);
@@ -846,14 +733,6 @@ namespace nHydrate.Generator.Common.GeneratorFramework
                         //Do Nothing
                     }
                 }
-
-                #region Compute CRC
-                //System.IO.StreamReader sr = System.IO.File.OpenText("");
-                //nHydrate.Generator.Common.Util.CRC32HashAlgorithm hash = new CRC32HashAlgorithm();
-                //byte[] arr = hash.ComputeHash(sr.BaseStream);
-                //sr.Close();
-                //XmlHelper.AddAttribute(newfileNode, "crc", "0");
-                #endregion
 
                 if (fileStateInfo.FileName == string.Empty)
                 {
@@ -966,7 +845,7 @@ namespace nHydrate.Generator.Common.GeneratorFramework
 
                 if (generatorTypes.Length == 0)
                 {
-                    MessageBox.Show("There are no generators installed or there was an error loading the installed generators from the following path. '" + AddinAppData.Instance.ExtensionDirectory + "'", "Error!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    MessageBox.Show($"There are no generators installed or there was an error loading the installed generators from the following path. '{AddinAppData.Instance.ExtensionDirectory}'", "Error!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 }
 
                 foreach (var type in generatorTypes)

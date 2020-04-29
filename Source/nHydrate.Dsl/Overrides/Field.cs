@@ -1,42 +1,15 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using nHydrate.Generator.Common.Util;
 using System.ComponentModel;
-using DslModeling = global::Microsoft.VisualStudio.Modeling;
-using DslDesign = global::Microsoft.VisualStudio.Modeling.Design;
 using nHydrate.Generator.Common.GeneratorFramework;
-using System.Windows.Forms;
+using DslModeling = global::Microsoft.VisualStudio.Modeling;
 
 namespace nHydrate.Dsl
 {
-    partial class Field : nHydrate.Dsl.IModuleLink, nHydrate.Dsl.IContainerParent, nHydrate.Dsl.IField
+    partial class Field : nHydrate.Dsl.IContainerParent, nHydrate.Dsl.IField, IDirtyable
     {
         #region Constructors
         /// <summary>
@@ -57,8 +30,6 @@ namespace nHydrate.Dsl
         public Field(DslModeling::Partition partition, params DslModeling::PropertyAssignment[] propertyAssignments)
             : base(partition, propertyAssignments)
         {
-            this.Min = double.NaN;
-            this.Max = double.NaN;
         }
         #endregion
 
@@ -68,11 +39,6 @@ namespace nHydrate.Dsl
         internal System.Drawing.Bitmap CachedImage { get; set; }
 
         #region Names
-        public string CamelName
-        {
-            get { return StringHelper.DatabaseNameToCamelCase(this.PascalName); }
-        }
-
         public string PascalName
         {
             get
@@ -84,125 +50,52 @@ namespace nHydrate.Dsl
             }
         }
 
-        public string DatabaseName
-        {
-            get { return this.Name; }
-        }
+        public string DatabaseName => this.Name;
+
         #endregion
 
         #region Methods
-
-        public static bool IsSupportedType(DataTypeConstants type, DatabaseTypeConstants sqlVersion)
-        {
-            if (sqlVersion == DatabaseTypeConstants.SQL2005)
-            {
-                switch (type)
-                {
-                    //case DataTypeConstants.Xml:
-                    case DataTypeConstants.Udt:
-                    case DataTypeConstants.Structured:
-                    case DataTypeConstants.Variant:
-                    case DataTypeConstants.DateTimeOffset:
-                    case DataTypeConstants.DateTime2:
-                    case DataTypeConstants.Time:
-                    case DataTypeConstants.Date:
-                        return false;
-                    default:
-                        return true;
-                }
-            }
-            else if ((sqlVersion == DatabaseTypeConstants.SQL2008) || (sqlVersion == DatabaseTypeConstants.SQLAzure))
-            {
-                switch (type)
-                {
-                    //case DataTypeConstants.Xml:
-                    case DataTypeConstants.Udt:
-                    case DataTypeConstants.Structured:
-                    case DataTypeConstants.Variant:
-                        //case DataTypeConstants.DateTimeOffset:
-                        //case DataTypeConstants.DateTime2:
-                        //case DataTypeConstants.Time:
-                        //case DataTypeConstants.Date:
-                        return false;
-                    default:
-                        return true;
-                }
-            }
-            else
-            {
-                return false;
-            }
-
-        }
 
         public virtual bool CanHaveDefault()
         {
             switch (this.DataType)
             {
                 case DataTypeConstants.BigInt:
-                    return true;
                 case DataTypeConstants.Binary:
-                    return true;
                 case DataTypeConstants.Bit:
-                    return true;
                 case DataTypeConstants.Char:
-                    return true;
                 case DataTypeConstants.Date:
-                    return true;
                 case DataTypeConstants.DateTime:
-                    return true;
                 case DataTypeConstants.DateTime2:
-                    return true;
-                case DataTypeConstants.DateTimeOffset:
-                    return false;
                 case DataTypeConstants.Decimal:
-                    return true;
                 case DataTypeConstants.Float:
-                    return true;
                 case DataTypeConstants.Image:
-                    return true;
                 case DataTypeConstants.Int:
-                    return true;
                 case DataTypeConstants.Money:
-                    return true;
                 case DataTypeConstants.NChar:
-                    return true;
                 case DataTypeConstants.NText:
-                    return true;
                 case DataTypeConstants.NVarChar:
-                    return true;
                 case DataTypeConstants.Real:
-                    return true;
                 case DataTypeConstants.SmallDateTime:
-                    return true;
                 case DataTypeConstants.SmallInt:
-                    return true;
                 case DataTypeConstants.SmallMoney:
-                    return true;
-                case DataTypeConstants.Structured:
-                    return false;
                 case DataTypeConstants.Text:
-                    return true;
                 case DataTypeConstants.Time:
-                    return true;
-                case DataTypeConstants.Timestamp:
-                    return false;
                 case DataTypeConstants.TinyInt:
-                    return true;
-                case DataTypeConstants.Udt:
-                    return false;
                 case DataTypeConstants.UniqueIdentifier:
-                    return true;
                 case DataTypeConstants.VarBinary:
-                    return true;
                 case DataTypeConstants.VarChar:
                     return true;
+                case DataTypeConstants.Structured:
+                case DataTypeConstants.Timestamp:
+                case DataTypeConstants.Udt:
                 case DataTypeConstants.Variant:
-                    return false;
                 case DataTypeConstants.Xml:
+                case DataTypeConstants.DateTimeOffset:
+                    return false;
+                default:
                     return false;
             }
-            return false;
         }
 
         /// <summary>
@@ -254,7 +147,7 @@ namespace nHydrate.Dsl
                 if (userValue.Length == 1)
                     defaultValue = "@\"" + userValue.First().ToString().Replace("\"", @"""") + "\"";
             }
-            else if (this.IsBinaryType())
+            else if (this.DataType.IsBinaryType())
             {
                 defaultValue = "new System.Byte[] { " + userValue.ConvertToHexArrayString() + " }";
             }
@@ -273,18 +166,17 @@ namespace nHydrate.Dsl
             else if (this.DataType == DataTypeConstants.UniqueIdentifier)
             {
                 if ((StringHelper.Match(userValue, "newid", true)) || (StringHelper.Match(userValue, "newid()", true)))
-                    defaultValue = String.Format("Guid.NewGuid()");
+                    defaultValue = "Guid.NewGuid()";
                 else if (string.IsNullOrEmpty(userValue))
                     defaultValue = "System.Guid.Empty";
                 else
                 {
                     var gv = userValue.Replace("'", string.Empty);
-                    Guid g;
-                    if (Guid.TryParse(gv, out g))
+                    if (Guid.TryParse(gv, out _))
                         defaultValue = "new Guid(\"" + gv + "\")";
                 }
             }
-            else if (this.IsIntegerType())
+            else if (this.DataType.IsIntegerType())
             {
                 defaultValue = "0";
                 int i;
@@ -292,7 +184,7 @@ namespace nHydrate.Dsl
                     defaultValue = userValue;
                 if (this.DataType == DataTypeConstants.BigInt) defaultValue += "L";
             }
-            else if (this.IsNumericType())
+            else if (this.DataType.IsNumericType())
             {
                 defaultValue = "0";
                 double d;
@@ -311,7 +203,7 @@ namespace nHydrate.Dsl
             }
             else
             {
-                if (Extensions.IsTextType(this))
+                if (this.DataType.IsTextType())
                     defaultValue = "\"" + userValue.Replace("''", "") + "\"";
                 else
                     defaultValue = "\"" + userValue + "\"";
@@ -339,10 +231,7 @@ namespace nHydrate.Dsl
             switch (this.DataType)
             {
                 case DataTypeConstants.BigInt:
-                    {
-                        long v;
-                        return long.TryParse(value, out v);
-                    }
+                    return long.TryParse(value, out _);
                 case DataTypeConstants.Binary:
                 case DataTypeConstants.Image:
                 case DataTypeConstants.VarBinary:
@@ -351,118 +240,67 @@ namespace nHydrate.Dsl
                     if ((value.Substring(0, 2) == "0x") && (value.Length % 2 == 0) && value.Substring(2, value.Length - 2).IsHex()) return true;
                     return false;
                 case DataTypeConstants.Bit:
-                    {
-                        var q = value.ToLower();
-                        if (q == "1" || q == "0") return true;
-                        bool v;
-                        return bool.TryParse(value, out v);
-                    }
-                case DataTypeConstants.Char:
-                    return true;
+                {
+                    var q = value.ToLower();
+                    if (q == "1" || q == "0") return true;
+                    return bool.TryParse(value, out _);
+                }
                 case DataTypeConstants.Date:
-                    {
-                        var d = this.GetCodeDefault();
-                        return !string.IsNullOrEmpty(d);
-                    }
+                    return !string.IsNullOrEmpty(this.GetCodeDefault());
                 case DataTypeConstants.DateTime:
-                    {
-                        var d = this.GetCodeDefault();
-                        return !string.IsNullOrEmpty(d);
-                    }
+                    return !string.IsNullOrEmpty(this.GetCodeDefault());
                 case DataTypeConstants.DateTime2:
-                    {
-                        var d = this.GetCodeDefault();
-                        return !string.IsNullOrEmpty(d);
-                    }
-                case DataTypeConstants.DateTimeOffset:
-                    return false;
+                    return !string.IsNullOrEmpty(this.GetCodeDefault());
                 case DataTypeConstants.Decimal:
-                    {
-                        decimal v;
-                        return decimal.TryParse(value, out v);
-                    }
+                    return decimal.TryParse(value, out _);
                 case DataTypeConstants.Float:
-                    {
-                        decimal v;
-                        return decimal.TryParse(value, out v);
-                    }
+                    return decimal.TryParse(value, out _);
                 case DataTypeConstants.Int:
-                    {
-                        int v;
-                        return int.TryParse(value, out v);
-                    }
+                    return int.TryParse(value, out _);
                 case DataTypeConstants.Money:
-                    {
-                        long v;
-                        return long.TryParse(value, out v);
-                    }
+                    return long.TryParse(value, out _);
+                case DataTypeConstants.Char:
                 case DataTypeConstants.NChar:
-                    return true;
                 case DataTypeConstants.NText:
-                    return true;
                 case DataTypeConstants.NVarChar:
-                    return true;
-                case DataTypeConstants.Real:
-                    {
-                        decimal v;
-                        return decimal.TryParse(value, out v);
-                    }
-                case DataTypeConstants.SmallDateTime:
-                    {
-                        var d = this.GetCodeDefault();
-                        return !string.IsNullOrEmpty(d);
-                    }
-                case DataTypeConstants.SmallInt:
-                    {
-                        Int16 v;
-                        return Int16.TryParse(value, out v);
-                    }
-                case DataTypeConstants.SmallMoney:
-                    {
-                        int v;
-                        return int.TryParse(value, out v);
-                    }
-                case DataTypeConstants.Structured:
-                    return false;
                 case DataTypeConstants.Text:
-                    return true;
-                case DataTypeConstants.Time:
-                    {
-                        var d = this.GetCodeDefault();
-                        return !string.IsNullOrEmpty(d);
-                    }
-                case DataTypeConstants.Timestamp:
-                    return false;
-                case DataTypeConstants.TinyInt:
-                    {
-                        byte v;
-                        return byte.TryParse(value, out v);
-                    }
-                case DataTypeConstants.Udt:
-                    return false;
-                case DataTypeConstants.UniqueIdentifier:
-                    {
-                        if (value.ToLower() == "newid") return true;
-                        try
-                        {
-                            var v = new Guid(value);
-                            return true;
-                        }
-                        catch { return false; }
-                    }
                 case DataTypeConstants.VarChar:
                     return true;
+                case DataTypeConstants.Real:
+                    return decimal.TryParse(value, out _);
+                case DataTypeConstants.SmallDateTime:
+                    return !string.IsNullOrEmpty(this.GetCodeDefault());
+                case DataTypeConstants.SmallInt:
+                    return Int16.TryParse(value, out _);
+                case DataTypeConstants.SmallMoney:
+                    return int.TryParse(value, out _);
+                case DataTypeConstants.Time:
+                    return !string.IsNullOrEmpty(this.GetCodeDefault());
+                case DataTypeConstants.TinyInt:
+                    return byte.TryParse(value, out byte _);
+                case DataTypeConstants.UniqueIdentifier:
+                {
+                    if (value.ToLower() == "newid") return true;
+                    try
+                    {
+                        var v = new Guid(value);
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                }
+                case DataTypeConstants.Timestamp:
+                case DataTypeConstants.Structured:
+                case DataTypeConstants.DateTimeOffset:
+                case DataTypeConstants.Udt:
                 case DataTypeConstants.Variant:
-                    return false;
                 case DataTypeConstants.Xml:
                     return false;
             }
-            return false;
-        }
 
-        public virtual string GetCodeType()
-        {
-            return GetCodeType(true, false);
+            return false;
         }
 
         public virtual string GetCodeType(bool allowNullable)
@@ -474,129 +312,67 @@ namespace nHydrate.Dsl
         {
             var retval = string.Empty;
             if (StringHelper.Match(this.DataType.ToString(), "bigint", true))
-            {
                 retval = "long";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "binary", true))
-            {
                 return "System.Byte[]";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "bit", true))
-            {
                 retval = "bool";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "char", true))
-            {
                 return "string";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "datetime", true))
-            {
                 retval = "DateTime";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "datetime2", true))
-            {
                 retval = "DateTime";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "date", true))
-            {
                 retval = "DateTime";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "time", true))
-            {
                 retval = "TimeSpan";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "datetimeoffset", true))
-            {
                 retval = "DateTimeOffset";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "decimal", true))
-            {
                 retval = "decimal";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "float", true))
-            {
                 retval = "double";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "image", true))
-            {
                 return "System.Byte[]";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "int", true))
-            {
                 retval = "int";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "money", true))
-            {
                 retval = "decimal";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "nchar", true))
-            {
                 return "string";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "ntext", true))
-            {
                 return "string";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "numeric", true))
-            {
                 retval = "decimal";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "nvarchar", true))
-            {
                 return "string";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "real", true))
-            {
                 retval = "System.Single";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "smalldatetime", true))
-            {
                 retval = "DateTime";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "smallint", true))
-            {
                 retval = "short";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "smallmoney", true))
-            {
                 retval = "decimal";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "variant", true))
-            {
                 retval = "object";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "text", true))
-            {
                 return "string";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "tinyint", true))
-            {
                 retval = "byte";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "uniqueidentifier", true))
-            {
                 retval = "System.Guid";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "varbinary", true))
-            {
                 return "System.Byte[]";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "varchar", true))
-            {
                 return "string";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "timestamp", true))
-            {
                 return "System.Byte[]";
-            }
             else if (StringHelper.Match(this.DataType.ToString(), "xml", true))
-            {
                 return "string";
-            }
             else
-            {
                 throw new Exception("Cannot Map Sql Value To C# Value");
-            }
 
             if (allowNullable && (this.Nullable || forceNull))
                 retval += "?";
@@ -605,10 +381,7 @@ namespace nHydrate.Dsl
 
         }
 
-        public override string ToString()
-        {
-            return this.Name;
-        }
+        public override string ToString() => this.Name;
 
         #endregion
 
@@ -626,44 +399,12 @@ namespace nHydrate.Dsl
             set { base.IsUnique = value; }
         }
 
-        public override double Min
-        {
-            get
-            {
-                if (this.IsCalculated) return double.NaN;
-                if (!this.IsNumericType()) return double.NaN;
-                return base.Min;
-            }
-            set { base.Min = value; }
-        }
-
-        public override double Max
-        {
-            get
-            {
-                if (this.IsCalculated) return double.NaN;
-                if (!this.IsNumericType()) return double.NaN;
-                return base.Max;
-            }
-            set { base.Max = value; }
-        }
-
-        public override string Collate
-        {
-            get
-            {
-                if (this.IsCalculated) return string.Empty;
-                else return base.Collate;
-            }
-            set { base.Collate = value; }
-        }
-
         public override string Default
         {
             get
             {
                 if (this.IsCalculated) return string.Empty;
-                else return base.Default;
+                return base.Default;
             }
             set { base.Default = value; }
         }
@@ -709,12 +450,7 @@ namespace nHydrate.Dsl
                 if (retval == -1) retval = base.Length;
                 return retval;
             }
-            set
-            {
-                //if (value < 0) value = 0;
-                //value = this.DataType.ValidateDataTypeMax(value);
-                base.Length = value;
-            }
+            set { base.Length = value; }
         }
 
         public override int Scale
@@ -725,11 +461,7 @@ namespace nHydrate.Dsl
                 if (retval == -1) retval = base.Scale;
                 return retval;
             }
-            set
-            {
-                //if (value < 0) value = 0;
-                base.Scale = value;
-            }
+            set { base.Scale = value; }
         }
 
         public override DataTypeConstants DataType
@@ -743,12 +475,6 @@ namespace nHydrate.Dsl
 
                     if (this.Entity != null && this.Entity.nHydrateModel != null)
                     {
-                        var sqlType = this.Entity.nHydrateModel.SQLServerType;
-                        //if (!Field.IsSupportedType(value, sqlType) && !this.Entity.nHydrateModel.IsLoading)
-                        //{
-                        //  throw new Exception("Unsupported type '" + value.ToString() + "' for SQL Server type '" + sqlType + "'.");
-                        //}
-
                         //Reset length if necessary
                         if (!this.Entity.nHydrateModel.IsLoading)
                         {
@@ -793,34 +519,9 @@ namespace nHydrate.Dsl
         }
         #endregion
 
-        #region IModuleLink
-
-        IEnumerable<Module> IModuleLink.Modules
-        {
-            get { return this.Modules.AsEnumerable(); }
-        }
-
-        void IModuleLink.AddModule(Module module)
-        {
-            if (!this.Modules.Contains(module))
-                this.Modules.Add(module);
-        }
-
-        void IModuleLink.RemoveModule(Module module)
-        {
-            if (this.Modules.Contains(module))
-                this.Modules.Remove(module);
-        }
-
-        #endregion
-
-
         #region IContainerParent Members
 
-        DslModeling.ModelElement IContainerParent.ContainerParent
-        {
-            get { return this.Entity; }
-        }
+        DslModeling.ModelElement IContainerParent.ContainerParent => this.Entity;
 
         #endregion
     }
@@ -846,8 +547,7 @@ namespace nHydrate.Dsl
                             {
                                 if (typearr.Length == 2)
                                 {
-                                    int len;
-                                    if (int.TryParse(typearr[1], out len))
+                                    if (int.TryParse(typearr[1], out var len))
                                     {
                                         element.DataType = d.Value;
                                         element.Length = len;
@@ -919,12 +619,6 @@ namespace nHydrate.Dsl
 
                 try
                 {
-                    //Do not process if we are already doing something
-                    //if (element.Store.TransactionManager.CurrentTransaction != null)
-                    //{
-                    //  if (element.Store.TransactionManager.CurrentTransaction.HasPendingChanges) return;
-                    //}
-
                     if (element.Entity != null && element.Entity.nHydrateModel != null && !element.Entity.nHydrateModel.IsLoading)
                     {
                         //Processes Index list
@@ -948,15 +642,6 @@ namespace nHydrate.Dsl
                                     newColumn.IsInternal = true;
 
                                     newIndex.IndexType = IndexTypeConstants.PrimaryKey; //Do this last
-
-                                    //If use modules then add the PK to all modules that contain this entity
-                                    if (element.Entity.nHydrateModel.UseModules)
-                                    {
-                                        foreach (var module in element.Modules)
-                                        {
-                                            element.Entity.nHydrateModel.IndexModules.Add(new IndexModule(element.Entity.nHydrateModel.Partition) { IndexID = newIndex.Id, ModuleId = module.Id });
-                                        }
-                                    }
 
                                     transaction.Commit();
                                 }
@@ -1007,15 +692,6 @@ namespace nHydrate.Dsl
                                     else
                                         existing.IndexType = IndexTypeConstants.PrimaryKey;
 
-                                    //If use modules then add the PK to all modules that contain this entity
-                                    if (element.Entity.nHydrateModel.UseModules && existing.FieldList.Count == 0)
-                                    {
-                                        foreach (var module in element.Modules)
-                                        {
-                                            element.Entity.nHydrateModel.IndexModules.Remove(x => (x.IndexID == existing.Id) && (x.ModuleId == module.Id));
-                                        }
-                                    }
-
                                     transaction.Commit();
                                 }
                             }
@@ -1036,59 +712,52 @@ namespace nHydrate.Dsl
             {
                 base.OnValueChanged(element, oldValue, newValue);
 
-                try
+                if (element.Entity != null && element.Entity.nHydrateModel != null && !element.Entity.nHydrateModel.IsLoading)
                 {
-                    if (element.Entity != null && element.Entity.nHydrateModel != null && !element.Entity.nHydrateModel.IsLoading)
+                    //Processes Index list
+                    if (newValue) //element.IsIndexed //Must use real property since there is logic there
                     {
-                        //Processes Index list
-                        if (newValue) //element.IsIndexed //Must use real property since there is logic there
+                        //Add an Asc single field index
+                        var existing = element.Entity.Indexes.FirstOrDefault(x => x.IndexColumns.Count == 1 && x.IndexColumns.First().FieldID == element.Id && x.IndexColumns.First().Ascending && x.IndexType == IndexTypeConstants.IsIndexed);
+                        if (existing == null)
                         {
-                            //Add an Asc single field index
-                            var existing = element.Entity.Indexes.FirstOrDefault(x => x.IndexColumns.Count == 1 && x.IndexColumns.First().FieldID == element.Id && x.IndexColumns.First().Ascending && x.IndexType == IndexTypeConstants.IsIndexed);
-                            if (existing == null)
-                            {
-                                using (var transaction = element.Store.TransactionManager.BeginTransaction(Guid.NewGuid().ToString()))
-                                {
-                                    var newIndex = new Index(element.Partition);
-                                    newIndex.ParentEntityID = element.Entity.Id;
-                                    newIndex.IndexType = IndexTypeConstants.IsIndexed;
-                                    newIndex.Clustered = false;
-                                    element.Entity.Indexes.Add(newIndex);
-
-                                    var newColumn = new IndexColumn(element.Partition);
-                                    newColumn.FieldID = element.Id;
-                                    newColumn.IsInternal = true;
-                                    newIndex.IndexColumns.Add(newColumn);
-
-                                    transaction.Commit();
-                                }
-                            }
-                        }
-                        else //Remove Index
-                        {
-                            var existingList = element.Entity.Indexes
-                                .Where(x => x.IndexType == IndexTypeConstants.IsIndexed && x.IndexColumns.Count == 1 && x.IndexColumns.First().FieldID == element.Id && x.IndexType == IndexTypeConstants.IsIndexed)
-                                .ToList();
-
                             using (var transaction = element.Store.TransactionManager.BeginTransaction(Guid.NewGuid().ToString()))
                             {
-                                while (existingList.Count > 0)
-                                {
-                                    var item = existingList.First();
-                                    item.IndexType = IndexTypeConstants.User;
-                                    element.Entity.Indexes.Remove(item);
-                                    existingList.Remove(item);
-                                }
+                                var newIndex = new Index(element.Partition);
+                                newIndex.ParentEntityID = element.Entity.Id;
+                                newIndex.IndexType = IndexTypeConstants.IsIndexed;
+                                newIndex.Clustered = false;
+                                element.Entity.Indexes.Add(newIndex);
+
+                                var newColumn = new IndexColumn(element.Partition);
+                                newColumn.FieldID = element.Id;
+                                newColumn.IsInternal = true;
+                                newIndex.IndexColumns.Add(newColumn);
+
                                 transaction.Commit();
                             }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
+                    else //Remove Index
+                    {
+                        var existingList = element.Entity.Indexes
+                            .Where(x => x.IndexType == IndexTypeConstants.IsIndexed && x.IndexColumns.Count == 1 && x.IndexColumns.First().FieldID == element.Id && x.IndexType == IndexTypeConstants.IsIndexed)
+                            .ToList();
 
+                        using (var transaction = element.Store.TransactionManager.BeginTransaction(Guid.NewGuid().ToString()))
+                        {
+                            while (existingList.Count > 0)
+                            {
+                                var item = existingList.First();
+                                item.IndexType = IndexTypeConstants.User;
+                                element.Entity.Indexes.Remove(item);
+                                existingList.Remove(item);
+                            }
+
+                            transaction.Commit();
+                        }
+                    }
+                }
             }
         }
 
@@ -1096,21 +765,14 @@ namespace nHydrate.Dsl
         {
             protected override void OnValueChanged(FieldBase element, DataTypeConstants oldValue, DataTypeConstants newValue)
             {
-                try
-                {
-                    base.OnValueChanged(element, oldValue, newValue);
+                base.OnValueChanged(element, oldValue, newValue);
 
-                    if (element.Entity != null && element.Entity.nHydrateModel != null)
-                    {
-                        if (!element.Entity.nHydrateModel.IsLoading)
-                        {
-                            element.Length = newValue.GetDefaultSize(element.Length);
-                        }
-                    }
-                }
-                catch (Exception ex)
+                if (element.Entity != null && element.Entity.nHydrateModel != null)
                 {
-                    throw;
+                    if (!element.Entity.nHydrateModel.IsLoading)
+                    {
+                        element.Length = newValue.GetDefaultSize(element.Length);
+                    }
                 }
             }
         }

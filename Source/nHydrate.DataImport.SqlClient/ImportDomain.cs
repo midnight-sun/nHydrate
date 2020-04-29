@@ -1,35 +1,9 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Data.SqlClient;
 using System.Data;
-using System.Text.RegularExpressions;
+using nHydrate.Generator.Common.Util;
 
 namespace nHydrate.DataImport.SqlClient
 {
@@ -57,7 +31,6 @@ namespace nHydrate.DataImport.SqlClient
             try
             {
                 var database = new Database();
-                database.Collate = DatabaseHelper.GetDatabaseCollation(connectionString);
 
                 #region Load user defined types
                 LoadUdts(database, connectionString);
@@ -87,7 +60,7 @@ namespace nHydrate.DataImport.SqlClient
 
                         var entity = database.EntityList.FirstOrDefault(x => x.Name == tableName);
                         //Ensure the field name is not an Audit field
-                        if (entity != null && !auditFields.Any(x => x.Name.ToLower() == columnName.ToLower()))
+                        if (entity != null && !auditFields.Any(x => x.Name.Match(columnName)))
                         {
                             var maxSortOrder = 0;
                             if (entity.FieldList.Count > 0) maxSortOrder = entity.FieldList.Max(x => x.SortOrder);
@@ -119,13 +92,6 @@ namespace nHydrate.DataImport.SqlClient
                                 newColumn.Length = (byte)columnReader["precision"];
                                 newColumn.Scale = (int)columnReader["scale"];
                             }
-
-                            if (columnReader["collation"] != System.DBNull.Value)
-                            {
-                                if (database.Collate != (string)columnReader["collation"])
-                                    newColumn.Collate = (string)columnReader["collation"];
-                            }
-
                         }
                         else if (entity != null)
                         {
@@ -136,7 +102,7 @@ namespace nHydrate.DataImport.SqlClient
                                 entity.AllowCreateAudit = true;
                             }
 
-                            if (auditFields.Any(x => (x.Type == SpecialFieldTypeConstants.ModifedDate ||
+                            if (auditFields.Any(x => (x.Type == SpecialFieldTypeConstants.ModifiedDate ||
                                 x.Type == SpecialFieldTypeConstants.ModifiedBy) &&
                                 x.Name.ToLower() == columnName.ToLower()))
                             {
@@ -257,22 +223,9 @@ namespace nHydrate.DataImport.SqlClient
                 }
                 #endregion
 
-                #region Load StoredProcs
-
-                LoadStoredProcedures(database, connectionString);
-
-                #endregion
-
                 #region Load Views
                 this.ProgressText = "Loading Views...";
                 LoadViews(database, connectionString);
-
-                #endregion
-
-                #region Load Functions
-
-                this.ProgressText = "Loading Functions...";
-                LoadFunctions(database, connectionString);
 
                 #endregion
 
@@ -386,7 +339,7 @@ namespace nHydrate.DataImport.SqlClient
                     //The length is half the bytes for these types
                     if ((dataType == SqlDbType.NChar) || (dataType == SqlDbType.NVarChar))
                     {
-                        length = length / 2;
+                        length /= 2;
                     }
                     else if (dataType == SqlDbType.DateTime2)
                     {
@@ -404,291 +357,6 @@ namespace nHydrate.DataImport.SqlClient
                         view.FieldList.Add(field);
                     }
                 }
-            }
-
-        }
-
-        #endregion
-
-        #region LoadStoredProcedures
-
-        private static void LoadStoredProcedures(Database database, string connectionString)
-        {
-            LoadStoredProcedures(database, null, connectionString);
-        }
-
-        private static bool LoadStoredProcedures(Database database, string procName, string connectionString)
-        {
-            try
-            {
-                var dsSP = DatabaseHelper.ExecuteDataset(connectionString, SchemaModelHelper.GetSqlForStoredProcedures(procName));
-                var dsSPParameter = DatabaseHelper.ExecuteDataset(connectionString, SchemaModelHelper.GetSqlForStoredProceduresParameters());
-
-                //Add the Stored Procedures
-                StoredProc customStoredProcedure = null;
-                foreach (DataRow rowSP in dsSP.Tables[0].Rows)
-                {
-                    var id = (int)rowSP["object_id"];
-                    var name = (string)rowSP["object_name"];
-                    var schema = (string)rowSP["schemaname"];
-                    customStoredProcedure = database.StoredProcList.FirstOrDefault(x => x.Name == name);
-                    if (customStoredProcedure == null)
-                    {
-                        customStoredProcedure = new StoredProc();
-                        customStoredProcedure.Name = name;
-                        customStoredProcedure.SQL = SchemaModelHelper.GetSqlForStoredProceduresBody(schema, name, connectionString);
-                        customStoredProcedure.Schema = schema;
-                        database.StoredProcList.Add(customStoredProcedure);
-                    }
-
-                }
-
-                //Add the parameters
-                var sortOrder = 1;
-                foreach (DataRow rowSP in dsSPParameter.Tables[0].Rows)
-                {
-                    if (!DatabaseHelper.IsValidSQLDataType((SqlNativeTypes)int.Parse(rowSP["system_type_id"].ToString())))
-                    {
-                        customStoredProcedure.InError = true;
-                        customStoredProcedure.ParameterList.Clear();
-                        customStoredProcedure.FieldList.Clear();
-                        return false;
-                    }
-
-                    var id = (int)rowSP["object_id"];
-                    var spName = (string)rowSP["object_name"];
-                    var name = (string)rowSP["column_name"];
-                    var typeName = (string)rowSP["column_type"];
-                    var dataType = DatabaseHelper.GetSQLDataType(rowSP["system_type_id"].ToString(), database.UserDefinedTypes);
-                    var length = int.Parse(rowSP["max_length"].ToString());
-                    var isOutput = (bool)rowSP["is_output"];
-
-                    //The length is half the bytes for these types
-                    if ((dataType == SqlDbType.NChar) || (dataType == SqlDbType.NVarChar))
-                    {
-                        length = length / 2;
-                    }
-
-                    if (customStoredProcedure != null)
-                    {
-                        var parameter = new Parameter();
-                        parameter.Name = name.Replace("@", string.Empty);
-                        parameter.SortOrder = sortOrder;
-                        sortOrder++;
-                        parameter.DataType = dataType;
-                        parameter.Length = length;
-                        parameter.Nullable = (bool)rowSP["is_nullable"];
-                        parameter.IsOutputParameter = isOutput;
-                        customStoredProcedure.ParameterList.Add(parameter);
-                    }
-                }
-
-                //Try to get the columns
-                var errorItems = new List<string>();
-                foreach (var sp in database.StoredProcList)
-                {
-                    try
-                    {
-                        DataSet dsSPColumn = null;
-                        try
-                        {
-                            dsSPColumn = DatabaseHelper.ExecuteDataset(connectionString, SchemaModelHelper.GetSqlForStoredProceduresColumns(sp));
-                        }
-                        catch (Exception)
-                        {
-                            sp.ColumnFailure = true;
-                        }
-
-                        if ((dsSPColumn != null) && dsSPColumn.Tables.Count > 0)
-                        {
-                            var dt = dsSPColumn.Tables[0];
-                            foreach (DataColumn column in dt.Columns)
-                            {
-                                var newColumn = new Field();
-
-                                var dataType = Extensions.GetSqlDbType(column.DataType);
-                                var length = newColumn.DataType.ValidateDataTypeMax(1000000);
-
-                                newColumn.Name = column.ColumnName;
-                                newColumn.DataType = dataType;
-                                newColumn.Nullable = true;
-                                newColumn.Length = length;
-                                if (newColumn.DataType == SqlDbType.Decimal)
-                                {
-                                    newColumn.Length = 18;
-                                    newColumn.Scale = 4;
-                                }
-                                if (newColumn.DataType == SqlDbType.DateTime2)
-                                {
-                                    newColumn.Length = 7;
-                                    newColumn.Scale = 0;
-                                }
-                                if (newColumn.DataType == SqlDbType.VarChar)
-                                    newColumn.Length = 50;
-                                sp.FieldList.Add(newColumn);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        //Do Nothing - Skip to next
-                        if (ex.Message.Contains("Invalid object name '#")) //this is a temp table. it cannot be run so there is nothing we can do
-                        {
-                            //Do Nothing
-                        }
-                        else
-                        {
-                            errorItems.Add(sp.Name);
-                        }
-
-                    }
-                }
-                return true;
-
-            }
-            catch (Exception /*ignored*/)
-            {
-                throw;
-            }
-        }
-
-        #endregion
-
-        #region LoadFunctions
-
-        private static void LoadFunctions(Database database, string connectionString)
-        {
-            try
-            {
-                //Add the Functions
-                var dsFunction = DatabaseHelper.ExecuteDataset(connectionString, SchemaModelHelper.GetSqlForFunctions());
-                if (dsFunction.Tables.Count > 0)
-                {
-                    foreach (DataRow rowFunction in dsFunction.Tables[0].Rows)
-                    {
-                        var name = (string)rowFunction["name"];
-                        var schema = (string)rowFunction["schemaname"];
-                        var sql = SchemaModelHelper.GetFunctionBody(schema, name, connectionString);
-                        var function = database.FunctionList.FirstOrDefault(x => x.Name == name);
-                        if (function == null)
-                        {
-                            function = new Function();
-                            function.Name = name;
-                            function.Schema = schema;
-
-                            function.SQL = sql;
-                            database.FunctionList.Add(function);
-                        }
-                    }
-                }
-
-                foreach (var function in database.FunctionList)
-                {
-                    var dsFunctionAux = DatabaseHelper.ExecuteDataset(connectionString, "sp_help '[" + function.Schema + "].[" + function.Name + "]'");
-                    DataTable dtColumn = null;
-                    DataTable dtParameter = null;
-
-                    foreach (DataTable dt in dsFunctionAux.Tables)
-                    {
-                        if (dt.Columns.Contains("column_name"))
-                            dtColumn = dt;
-                        else if (dt.Columns.Contains("parameter_name"))
-                            dtParameter = dt;
-                    }
-
-                    //Add the columns
-                    if (dtColumn != null)
-                    {
-                        foreach (DataRow row in dtColumn.Rows)
-                        {
-                            var field = new Field();
-                            field.Name = (string)row["column_name"];
-
-                            var dataType = DatabaseHelper.GetSQLDataType((string)row["type"], database.UserDefinedTypes);
-                            var length = int.Parse(row["length"].ToString());
-
-                            //The length is half the bytes for these types
-                            if ((dataType == SqlDbType.NChar) ||
-                                (dataType == SqlDbType.NVarChar))
-                            {
-                                length = length / 2;
-                            }
-
-                            field.DataType = dataType;
-                            field.Nullable = row["column_name"].ToString() == "yes" ? true : false;
-
-                            field.Length = length;
-                            if (row["scale"] != System.DBNull.Value && !string.IsNullOrEmpty((string)row["scale"]) && ((string)row["scale"]).Trim() != string.Empty)
-                                field.Scale = int.Parse(row["scale"].ToString());
-                            function.FieldList.Add(field);
-                        }
-                    }
-
-                    function.IsTable = (dtColumn != null);
-
-                    //Add the parameters
-                    if (dtParameter != null)
-                    {
-                        var sortOrder = 1;
-                        foreach (DataRow row in dtParameter.Rows)
-                        {
-                            var name = ((string)row["parameter_name"]).Replace("@", string.Empty);
-                            if (string.IsNullOrEmpty(name))
-                            {
-                                //This is a return value for a scalar function
-                                //If there is no name then this is the return
-                                var field = new Field();
-                                field.Name = "Value";
-                                field.Nullable = true;
-
-                                var dataType = DatabaseHelper.GetSQLDataType((string)row["type"], database.UserDefinedTypes);
-                                var length = int.Parse(row["length"].ToString());
-
-                                //The length is half the bytes for these types
-                                if ((dataType == SqlDbType.NChar) ||
-                                    (dataType == SqlDbType.NVarChar))
-                                {
-                                    length = length / 2;
-                                }
-
-                                field.DataType = dataType;
-                                field.Length = length;
-                                if (row["scale"] != System.DBNull.Value)
-                                    field.Scale = int.Parse(row["scale"].ToString());
-                                function.FieldList.Add(field);
-                            }
-                            else
-                            {
-                                //This is a parameter
-                                var parameter = new Parameter();
-                                parameter.Name = name;
-                                parameter.SortOrder = sortOrder;
-                                sortOrder++;
-
-                                var dataType = DatabaseHelper.GetSQLDataType((string)row["type"], database.UserDefinedTypes);
-                                parameter.DataType = dataType;
-                                var length = int.Parse(row["length"].ToString());
-
-                                //The length is half the bytes for these types
-                                if ((dataType == SqlDbType.NChar) ||
-                                    (dataType == SqlDbType.NVarChar))
-                                {
-                                    length = length / 2;
-                                }
-
-                                parameter.Length = length;
-                                if (row["scale"] != System.DBNull.Value)
-                                    parameter.Scale = int.Parse(row["scale"].ToString());
-                                function.ParameterList.Add(parameter);
-                            }
-                        }
-                    }
-
-                }
-            }
-            catch (Exception /*ignored*/)
-            {
-                throw;
             }
 
         }
@@ -822,52 +490,11 @@ namespace nHydrate.DataImport.SqlClient
 
         #endregion
 
-        #region GetStoredProcedureList
-
-        public IEnumerable<string> GetStoredProcedureList(string connectionString)
-        {
-            var retval = new List<string>();
-            using (var tableReader = DatabaseHelper.ExecuteReader(connectionString, CommandType.Text, SchemaModelHelper.GetSqlForStoredProcedures()))
-            {
-                while (tableReader.Read())
-                {
-                    var newEntity = new StoredProc();
-                    newEntity.Name = tableReader["object_name"].ToString();
-                    retval.Add(newEntity.Name);
-                    //newEntity.Schema = tableReader["schema"].ToString();
-                }
-            }
-            return retval;
-        }
-
-        #endregion
-
-        #region GetFunctionList
-
-        public IEnumerable<string> GetFunctionList(string connectionString)
-        {
-            var retval = new List<string>();
-            using (var tableReader = DatabaseHelper.ExecuteReader(connectionString, CommandType.Text, SchemaModelHelper.GetSqlForFunctions()))
-            {
-                while (tableReader.Read())
-                {
-                    var newEntity = new Function();
-                    newEntity.Name = tableReader["name"].ToString();
-                    retval.Add(newEntity.Name);
-                    //newEntity.Schema = tableReader["schema"].ToString();
-                }
-            }
-            return retval;
-        }
-
-        #endregion
-
         #region GetEntity
 
         public Entity GetEntity(string connectionString, string name, IEnumerable<SpecialField> auditFields)
         {
             var database = new Database();
-            database.Collate = DatabaseHelper.GetDatabaseCollation(connectionString);
 
             #region Load Entities
             using (var tableReader = DatabaseHelper.ExecuteReader(connectionString, CommandType.Text, SchemaModelHelper.GetSqlDatabaseTables()))
@@ -876,7 +503,7 @@ namespace nHydrate.DataImport.SqlClient
                 {
                     var newEntity = new Entity();
                     newEntity.Name = tableReader["name"].ToString();
-                    if (string.Compare(newEntity.Name, name, true) == 0) //Only the specified item
+                    if (newEntity.Name.Match(name)) //Only the specified item
                         database.EntityList.Add(newEntity);
                     newEntity.Schema = tableReader["schema"].ToString();
                 }
@@ -900,7 +527,7 @@ namespace nHydrate.DataImport.SqlClient
                         var newColumn = new Field() { Name = columnName, SortOrder = ++maxSortOrder };
                         entity.FieldList.Add(newColumn);
 
-                        newColumn.Nullable = bool.Parse(columnReader["allow_null"].ToString());
+                        newColumn.Nullable = (int)columnReader["allow_null"] == 1;
                         if (bool.Parse(columnReader["is_identity"].ToString()))
                             newColumn.Identity = true;
 
@@ -925,12 +552,6 @@ namespace nHydrate.DataImport.SqlClient
                             newColumn.Scale = (int)columnReader["scale"];
                         }
 
-                        if (columnReader["collation"] != System.DBNull.Value)
-                        {
-                            if (database.Collate != (string)columnReader["collation"])
-                                newColumn.Collate = (string)columnReader["collation"];
-                        }
-
                     }
                     else if (entity != null)
                     {
@@ -941,7 +562,7 @@ namespace nHydrate.DataImport.SqlClient
                             entity.AllowCreateAudit = true;
                         }
 
-                        if (auditFields.Any(x => (x.Type == SpecialFieldTypeConstants.ModifedDate ||
+                        if (auditFields.Any(x => (x.Type == SpecialFieldTypeConstants.ModifiedDate ||
                             x.Type == SpecialFieldTypeConstants.ModifiedBy) &&
                             x.Name.ToLower() == columnName.ToLower()))
                         {
@@ -999,7 +620,6 @@ namespace nHydrate.DataImport.SqlClient
         public View GetView(string connectionString, string name, IEnumerable<SpecialField> auditFields)
         {
             var database = new Database();
-            database.Collate = DatabaseHelper.GetDatabaseCollation(connectionString);
 
             LoadViews(database, connectionString);
 
@@ -1007,40 +627,6 @@ namespace nHydrate.DataImport.SqlClient
             database.ViewList.RemoveAll(x => l.Contains(x));
 
             return database.ViewList.FirstOrDefault();
-        }
-
-        #endregion
-
-        #region GetStoredProcedure
-
-        public StoredProc GetStoredProcedure(string connectionString, string procName, IEnumerable<SpecialField> auditFields)
-        {
-            var database = new Database();
-            database.Collate = DatabaseHelper.GetDatabaseCollation(connectionString);
-
-            LoadStoredProcedures(database, procName, connectionString);
-
-            var l = database.StoredProcList.Where(x => x.Name != procName).ToList();
-            database.StoredProcList.RemoveAll(x => l.Contains(x));
-
-            return database.StoredProcList.FirstOrDefault();
-        }
-
-        #endregion
-
-        #region GetView
-
-        public Function GetFunction(string connectionString, string name, IEnumerable<SpecialField> auditFields)
-        {
-            var database = new Database();
-            database.Collate = DatabaseHelper.GetDatabaseCollation(connectionString);
-
-            LoadFunctions(database, connectionString);
-
-            var l = database.FunctionList.Where(x => x.Name != name).ToList();
-            database.FunctionList.RemoveAll(x => l.Contains(x));
-
-            return database.FunctionList.FirstOrDefault();
         }
 
         #endregion
@@ -1059,7 +645,7 @@ namespace nHydrate.DataImport.SqlClient
             if (field.Nullable && defaultvalue.ToLower() == "null")
                 defaultvalue = string.Empty;
 
-            if (field.IsNumericType() || field.DataType == SqlDbType.Bit || field.IsDateType() || field.IsBinaryType())
+            if (field.DataType.IsNumericType() || field.DataType == SqlDbType.Bit || field.DataType.IsDateType() || field.DataType.IsBinaryType())
             {
                 field.DefaultValue = defaultvalue.Replace("(", string.Empty).Replace(")", string.Empty); //remove any parens
             }
@@ -1072,7 +658,7 @@ namespace nHydrate.DataImport.SqlClient
                 else
                     field.DefaultValue = defaultvalue.Replace("(", string.Empty).Replace(")", string.Empty).Replace("'", string.Empty); //Format: ('000...0000')
             }
-            else if (field.IsTextType())
+            else if (field.DataType.IsTextType())
             {
                 if (defaultvalue.StartsWith("(N'")) defaultvalue = defaultvalue.Substring(3, defaultvalue.Length - 3);
                 while (defaultvalue.StartsWith("('")) defaultvalue = defaultvalue.Substring(2, defaultvalue.Length - 2);

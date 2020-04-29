@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="12.0">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
     <ProductVersion>9.0.30729</ProductVersion>
@@ -36,7 +36,7 @@
     <SccProvider>
     </SccProvider>
     <OldToolsVersion>3.5</OldToolsVersion>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <PublishUrl>http://localhost/Widgetsphere.Common/</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Web</InstallFrom>
@@ -188,9 +188,6 @@
     <Compile Include="..\..\AssemblyInfoGeneratorCommon.cs">
       <Link>Properties\AssemblyInfoGeneratorCommon.cs</Link>
     </Compile>
-    <Compile Include="EventArgs\BooleanEventArgs.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="EventArgs\ProjectItemGeneratedErrorEventArgs.cs" />
     <Compile Include="EventArgs\ProjectItemDeletedEventArgs.cs" />
     <Compile Include="EventArgs\ProgressEventArgs.cs">
@@ -205,11 +202,8 @@
     <Compile Include="EventArgs\ProjectItemGenerationCompleteEventArgs.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="EventArgs\PropertyChangedEventArgs.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Exceptions\LicenseException.cs" />
-    <Compile Include="Forms\CommonLibrary.cs" />
+    <Compile Include="ListViewItemComparer.cs" />
     <Compile Include="Forms\CueBox.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -227,19 +221,10 @@
     </Compile>
     <Compile Include="GeneratorFramework\AddinProperties.cs" />
     <Compile Include="GeneratorFramework\INamedObject.cs" />
-    <Compile Include="GeneratorFramework\IModelEditor.cs" />
     <Compile Include="GeneratorFramework\IModelObject.cs" />
-    <Compile Include="GeneratorFramework\IRefactor.cs" />
-    <Compile Include="GeneratorFramework\ModelUIAttribute.cs" />
     <Compile Include="GeneratorFramework\GeneratorProjectAttribute.cs" />
-    <Compile Include="GeneratorFramework\IGeneratorStore.cs" />
-    <Compile Include="GeneratorFramework\RefactorTableCombine.cs" />
-    <Compile Include="GeneratorFramework\RefactorTableSplit.cs" />
+    <Compile Include="GeneratorFramework\IDirtyable.cs" />
     <Compile Include="GlobalCacheFile.cs" />
-    <Compile Include="Exceptions\ThreadExceptionHandler.cs" />
-    <Compile Include="Exceptions\ThreadExceptionHandlerForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="Exceptions\nHydrateException.cs" />
     <Compile Include="Forms\CollectionEditorForm.cs">
       <SubType>Form</SubType>
@@ -258,19 +243,12 @@
     <Compile Include="GeneratorFramework\IProjectItemGenerator.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="GeneratorFramework\IFileTemplate.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="GeneratorFramework\IXMLable.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="GeneratorFramework\GeneratorItemAttribute.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Logging\DebugConsole.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Logging\MultiProcessTraceListener.cs" />
     <Compile Include="Logging\nHydrateLog.cs" />
     <Compile Include="ModelCacheFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -284,54 +262,22 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Util\ByteEncoding.cs" />
-    <Compile Include="Util\CryptoFactory.cs" />
-    <Compile Include="Util\CryptographyHelperBase.cs" />
-    <Compile Include="Util\CryptographyUtility.cs" />
     <Compile Include="Util\EmbeddedResourceName.cs" />
     <Compile Include="Util\Extensions.cs" />
     <Compile Include="Util\FileStateInfo.cs" />
-    <Compile Include="Util\HashHelper.cs" />
     <Compile Include="Util\HashTable.cs" />
-    <Compile Include="Util\HTTPHelper.cs" />
-    <Compile Include="Util\ICryptoHelper.cs" />
-    <Compile Include="Util\PerformanceCounterHelper.cs" />
     <Compile Include="Util\ProjectItemCacheItem.cs" />
-    <Compile Include="Util\RegExHelper.cs" />
     <Compile Include="Util\SecurityHelper.cs" />
-    <Compile Include="Util\SerializeHelper.cs" />
-    <Compile Include="Util\SymmetricCryptographyHelper.cs" />
-    <Compile Include="Util\AspStringBlock.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Util\CRC32HashAlgorithm.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Util\CryptoHelper.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Util\EnvDTEHelper.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Util\FileSystemHelper.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Util\GlobalHelper.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Util\InstallLocationHelper.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Util\ProjectItemTemplateHelper.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Util\ReflectionHelper.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Util\RegistryHelper.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Util\ResourceHelper.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Util\StringHelper.cs">
@@ -342,11 +288,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ValidationHelper.cs" />
-    <Compile Include="Web References\nhydrateservice\Reference.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Reference.map</DependentUpon>
-    </Compile>
     <EmbeddedResource Include="Forms\CollectionEditorForm.resx">
       <DependentUpon>CollectionEditorForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -356,18 +297,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Exceptions\ThreadExceptionHandlerForm.resx">
-      <DependentUpon>ThreadExceptionHandlerForm.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Include="Forms\SendErrorForm.resx">
       <DependentUpon>SendErrorForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Images\Default.ico" />
-    <EmbeddedResource Include="Logging\DebugConsole.resx">
-      <DependentUpon>DebugConsole.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
@@ -379,14 +312,6 @@
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <None Include="Web References\nhydrateservice\MainService.wsdl" />
-    <None Include="Web References\nhydrateservice\Reference.map">
-      <Generator>MSDiscoCodeGenerator</Generator>
-      <LastGenOutput>Reference.cs</LastGenOutput>
-    </None>
-    <None Include="Web References\nhydrateservice\VersionNumber1.datasource">
-      <DependentUpon>Reference.map</DependentUpon>
     </None>
     <None Include="WidgetSphere.snk" />
   </ItemGroup>
@@ -413,27 +338,9 @@
   <ItemGroup>
     <Content Include="Build\postbuild.targets.xml" />
     <Content Include="Build\prebuild.targets.xml" />
-    <Content Include="Logging\ExampleLogConfig.xml" />
-    <None Include="Web References\nhydrateservice\MainService.disco" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
-  </ItemGroup>
-  <ItemGroup>
-    <WebReferences Include="Web References\" />
-  </ItemGroup>
-  <ItemGroup>
-    <WebReferenceUrl Include="http://www.nhydrate.org/Webservice/MainService.asmx">
-      <UrlBehavior>Dynamic</UrlBehavior>
-      <RelPath>Web References\nhydrateservice\</RelPath>
-      <UpdateFromURL>http://www.nhydrate.org/Webservice/MainService.asmx</UpdateFromURL>
-      <ServiceLocationURL>
-      </ServiceLocationURL>
-      <CachedDynamicPropName>
-      </CachedDynamicPropName>
-      <CachedAppSettingsObjectName>Settings</CachedAppSettingsObjectName>
-      <CachedSettingsPropName>Widgetsphere_Generator_Common_nhydrateservice_MainService</CachedSettingsPropName>
-    </WebReferenceUrl>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -1,28 +1,4 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -57,15 +33,9 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             }
         }
 
-        public override string FileName
-        {
-            get { return string.Format("1_CreateSchema.sql"); }
-        }
+        public override string FileName => "1_CreateSchema.sql";
 
-        internal string OldFileName
-        {
-            get { return string.Format("CreateSchema.sql"); }
-        }
+        internal string OldFileName => "CreateSchema.sql";
 
         #endregion
 
@@ -82,16 +52,12 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
                 this.AppendCreateSchema();
                 this.AppendCreateTable();
                 this.AppendCreateTenantViews();
-                this.AppendAuditTracking();
                 this.AppendCreateAudit();
                 this.AppendCreatePrimaryKey();
-                this.AppendAuditTables();
                 this.AppendCreateUniqueKey();
                 this.AppendCreateIndexes();
                 this.AppendRemoveDefaults();
                 this.AppendCreateDefaults();
-                this.AppendFixNulls();
-                this.AppendClearSP();
                 this.AppendVersionTable();
             }
             catch (Exception ex)
@@ -107,7 +73,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             var list = new List<string>();
 
             //Tables
-            foreach (var item in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var item in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 var s = item.GetSQLSchema().ToLower();
                 if (!list.Contains(s) && s != "dbo")
@@ -117,17 +83,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             }
 
             //Views
-            foreach (var item in (from x in _model.Database.CustomViews where x.Generated orderby x.Name select x))
-            {
-                var s = item.GetSQLSchema().ToLower();
-                if (!list.Contains(s) && s != "dbo")
-                {
-                    list.Add(s);
-                }
-            }
-
-            //Stored Procedures
-            foreach (var item in (from x in _model.Database.CustomStoredProcedures where x.Generated orderby x.Name select x))
+            foreach (var item in (from x in _model.Database.CustomViews orderby x.Name select x))
             {
                 var s = item.GetSQLSchema().ToLower();
                 if (!list.Contains(s) && s != "dbo")
@@ -153,7 +109,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
         private void AppendCreateTable()
         {
             //Emit each create table statement
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 sb.AppendLine(nHydrate.Core.SQLGeneration.SQLEmit.GetSQLCreateTable(_model, table));
                 sb.AppendLine("GO");
@@ -165,10 +121,10 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             {
                 //Now emit all field individually
                 sb.AppendLine("--##SECTION BEGIN [FIELD CREATE]");
-                foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+                foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
                 {
                     sb.AppendLine("--TABLE [" + table.DatabaseName + "] ADD FIELDS");
-                    foreach (var column in table.GeneratedColumns.OrderBy(x => x.SortOrder))
+                    foreach (var column in table.GetColumns().OrderBy(x => x.SortOrder))
                         sb.Append(nHydrate.Core.SQLGeneration.SQLEmit.GetSqlAddColumn(column, false));
                     sb.AppendLine("GO");
                 }
@@ -178,7 +134,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
 
             if (_model.Database.GrantExecUser != string.Empty)
             {
-                foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+                foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
                 {
                     sb.AppendLine("GRANT DELETE, INSERT, REFERENCES, SELECT, UPDATE ON [" + table.GetSQLSchema() + "].[" + table.DatabaseName + "] TO [" + _model.Database.GrantExecUser + "]");
                     sb.AppendLine("GO");
@@ -191,7 +147,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
         {
             //Tenant Views
             var grantSB = new StringBuilder();
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.IsTenant).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.IsTenant).OrderBy(x => x.Name))
             {
                 var template = new SQLSelectTenantViewTemplate(_model, table, grantSB);
                 sb.Append(template.FileContent);
@@ -201,50 +157,6 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             sb.Append(grantSB.ToString());
         }
 
-        #endregion
-
-        #region Append AuditTracking
-        private void AppendAuditTracking()
-        {
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
-            {
-                if (table.AllowAuditTracking)
-                {
-                    sb.AppendLine("--CREATE AUDIT TABLE FOR [" + table.DatabaseName + "]");
-                    sb.AppendLine(nHydrate.Core.SQLGeneration.SQLEmit.GetSQLCreateAuditTable(_model, table));
-                    sb.AppendLine("GO");
-                    sb.AppendLine();
-
-                    sb.AppendLine("--ENSURE ALL COLUMNS ARE CORRECT TYPE");
-                    var tableName = "__AUDIT__" + table.DatabaseName;
-
-                    foreach (var column in table.GetColumns().Where(x => x.Generated).OrderBy(x => x.Name))
-                    {
-                        if (!(column.DataType == System.Data.SqlDbType.Text || column.DataType == System.Data.SqlDbType.NText || column.DataType == System.Data.SqlDbType.Image))
-                        {
-                            //Now add columns if they do not exist
-                            sb.AppendLine("if not exists (select * from sys.columns c inner join sys.objects o on c.object_id = o.object_id where c.name = '" + column.DatabaseName + "' and o.name = '" + tableName + "')");
-                            sb.AppendLine($"ALTER TABLE [{table.GetSQLSchema()}].[{tableName}] ADD [" + column.DatabaseName + "] " + column.DatabaseType + " NULL");
-                            sb.AppendLine("GO");
-                            sb.AppendLine($"ALTER TABLE [{table.GetSQLSchema()}].[{tableName}] ALTER COLUMN [" + column.DatabaseName + "] " + column.DatabaseType + " NULL");
-                            sb.AppendLine("GO");
-                            sb.AppendLine();
-                        }
-                    }
-
-                    if (table.AllowModifiedAudit)
-                    {
-                        sb.AppendLine("if not exists (select * from sys.columns c inner join sys.objects o on c.object_id = o.object_id where c.name = '" + _model.Database.ModifiedByDatabaseName + "' and o.name = '" + tableName + "')");
-                        sb.AppendLine($"ALTER TABLE [{table.GetSQLSchema()}].[{tableName}] ADD [" + _model.Database.ModifiedByDatabaseName + "] [NVarchar] (50) NULL");
-                        sb.AppendLine("GO");
-                        sb.AppendLine($"ALTER TABLE [{table.GetSQLSchema()}].[{tableName}] ALTER COLUMN [" + _model.Database.ModifiedByDatabaseName + "] [NVarchar] (50) NULL");
-                        sb.AppendLine("GO");
-                        sb.AppendLine();
-                    }
-
-                }
-            }
-        }
         #endregion
 
         #region Append Primary Key
@@ -258,7 +170,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
 
                 //Rename existing PK if they exist
                 sb.AppendLine("--RENAME EXISTING PRIMARY KEYS IF NECESSARY");
-                foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+                foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
                 {
                     sb.AppendLine("DECLARE @pkfix" + table.PascalName + " varchar(500)");
                     sb.AppendLine("SET @pkfix" + table.PascalName + " = (SELECT top 1 i.name AS IndexName FROM sys.indexes AS i WHERE i.is_primary_key = 1 AND OBJECT_NAME(i.OBJECT_ID) = '" + table.DatabaseName + "')");
@@ -270,29 +182,14 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
                 sb.AppendLine("--##SECTION END [RENAME PK]");
                 sb.AppendLine();
 
-                sb.AppendLine("--##SECTION BEGIN [DROP PK]");
-                sb.AppendLine();
-
-                //Drop PK
-                foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly && !x.EnforcePrimaryKey).OrderBy(x => x.Name))
-                {
-                    sb.Append(SQLEmit.GetSqlDropPK(table));
-                }
-
-                sb.AppendLine("--##SECTION END [DROP PK]");
-                sb.AppendLine();
-
                 sb.AppendLine("--##SECTION BEGIN [CREATE PK]");
                 sb.AppendLine();
 
                 //Create PK
-                foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+                foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
                 {
-                    if (table.EnforcePrimaryKey)
-                    {
-                        sb.Append(SQLEmit.GetSqlCreatePK(table));
-                        sb.AppendLine("GO");
-                    }
+                    sb.Append(SQLEmit.GetSqlCreatePK(table));
+                    sb.AppendLine("GO");
                 }
 
                 sb.AppendLine("--##SECTION END [CREATE PK]");
@@ -303,24 +200,6 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
 
         #endregion
 
-        private void AppendAuditTables()
-        {
-            sb.AppendLine("--##SECTION BEGIN [AUDIT TABLES PK]");
-            sb.AppendLine();
-
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
-            {
-                //If there is an audit table then make its surrogate key PK clustered
-                if (table.AllowAuditTracking)
-                    sb.Append(SQLEmit.GetSqlCreateAuditPK(table));
-                else if (_model.EmitSafetyScripts)
-                    sb.Append(SQLEmit.GetSqlDropAuditPK(table));
-            }
-
-            sb.AppendLine("--##SECTION END [AUDIT TABLES PK]");
-            sb.AppendLine();
-        }
-
         #region AppendCreateIndexes
 
         private void AppendCreateIndexes()
@@ -329,7 +208,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             sb.AppendLine();
 
             //The index list holds all NON-PK indexes
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 //DO NOT process primary keys
                 foreach (var index in table.TableIndexList.Where(x => !x.PrimaryKey))
@@ -347,7 +226,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             sb.AppendLine();
 
             //Create indexes for Tenant fields
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.IsTenant).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.IsTenant).OrderBy(x => x.Name))
             {
                 sb.Append(nHydrate.Core.SQLGeneration.SQLEmit.GetSqlTenantIndex(_model, table));
             }
@@ -363,7 +242,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
 
         private void AppendCreateUniqueKey()
         {
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 var tableName = Globals.GetTableDatabaseName(_model, table);
                 foreach (Reference reference in table.Columns)
@@ -388,45 +267,6 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
 
         #endregion
 
-        #region AppendClearSP
-
-        private void AppendClearSP()
-        {
-            //DO NOT DO THIS RIGHT NOW AS MULTIPLE MODULES IS A PROBLEM
-            return;
-            sb.AppendLine("--CLEAR ALL EXISTING GENERATED STORED PROCEDURES");
-            sb.AppendLine("CREATE TABLE [#tmpDropSP] ([text] varchar(1000))");
-            sb.AppendLine("GO");
-            sb.AppendLine("insert into [#tmpDropSP] select '[' + s.name + '].[' + o.name + ']' as [text] ");
-            sb.AppendLine("from sys.objects o inner join sys.schemas s on o.schema_id = s.schema_id ");
-            sb.AppendLine("where o.name like '" + _model.GetStoredProcedurePrefix() + "_%' and type = 'P'");
-            sb.AppendLine();
-            sb.AppendLine("--LOOP AND REMOVE THESE CONSTRAINTS");
-            sb.AppendLine("DECLARE @mycur CURSOR");
-            sb.AppendLine("DECLARE @test VARCHAR(1000)");
-            sb.AppendLine("SET @mycur = CURSOR");
-            sb.AppendLine("FOR");
-            sb.AppendLine("SELECT [text] FROM #tmpDropSP");
-            sb.AppendLine("OPEN @mycur");
-            sb.AppendLine("FETCH NEXT FROM @mycur INTO @test");
-            sb.AppendLine("WHILE @@FETCH_STATUS = 0");
-            sb.AppendLine("BEGIN");
-            sb.AppendLine("exec(");
-            sb.AppendLine("'");
-            sb.AppendLine("if exists (select * from sys.objects where object_id = object_id(N''' + @test + ''') and OBJECTPROPERTY(object_id, N''IsProcedure'') = 1)");
-            sb.AppendLine("drop procedure ' + @test + '");
-            sb.AppendLine("')");
-            sb.AppendLine("FETCH NEXT FROM @mycur INTO @test");
-            sb.AppendLine("END");
-            sb.AppendLine("DEALLOCATE @mycur");
-            sb.AppendLine();
-            sb.AppendLine("DROP TABLE #tmpDropSP");
-            sb.AppendLine("GO");
-            sb.AppendLine();
-        }
-
-        #endregion
-
         #region AppendCreateAudit
 
         private void AppendCreateAudit()
@@ -438,11 +278,11 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             #region Audit Trial Create
             sb.AppendLine("--##SECTION BEGIN [AUDIT TRAIL CREATE]");
             sb.AppendLine();
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 if (table.AllowCreateAudit || table.AllowModifiedAudit ||  table.AllowTimestamp | table.IsTenant)
                 {
-                    var dateTimeString = (_model.SQLServerType == Common.GeneratorFramework.SQLServerTypeConstants.SQL2005) ? "[DateTime]" : "[DateTime2]";
+                    var dateTimeString = "[DateTime2]";
                     if (table.AllowCreateAudit)
                     {
                         Globals.AppendCreateAudit(table, _model, sb);
@@ -478,7 +318,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             #region Audit Trial Remove
             sb.AppendLine("--##SECTION BEGIN [AUDIT TRAIL REMOVE]");
             sb.AppendLine();
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 if (!table.AllowCreateAudit || !table.AllowModifiedAudit || !table.AllowTimestamp)
                 {
@@ -521,7 +361,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
 
             sb.AppendLine("--##SECTION BEGIN [REMOVE DEFAULTS]");
             sb.AppendLine();
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 //Add Defaults
                 var tempsb = new StringBuilder();
@@ -554,7 +394,7 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
 
             sb.AppendLine("--##SECTION BEGIN [CREATE DEFAULTS]");
             sb.AppendLine();
-            foreach (var table in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
+            foreach (var table in _model.Database.Tables.Where(x => x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
             {
                 //Add Defaults
                 var tempsb = new StringBuilder();
@@ -576,60 +416,6 @@ namespace nHydrate.Generator.SQLInstaller.ProjectItemGenerators.DatabaseSchema
             }
             sb.AppendLine("--##SECTION END [CREATE DEFAULTS]");
             sb.AppendLine();
-        }
-
-        #endregion
-
-        #region AppendFixNulls
-
-        private void AppendFixNulls()
-        {
-            //This will be removed now as managed database should not have this issue and it does add a lot of SQL
-            return;
-
-            //foreach (var t in _model.Database.Tables.Where(x => x.Generated && x.TypedTable != TypedTableConstants.EnumOnly).OrderBy(x => x.Name))
-            //{
-            //  sb.AppendLine("--VERIFY COLUMNS ARE CORRECTLY NULLABLE FOR TABLE [" + t.DatabaseName + "]");
-            //  foreach (var c in t.GetColumns().Where(x => !x.ComputedColumn))
-            //  {
-            //    if (!c.PrimaryKey && !string.IsNullOrEmpty(c.Default))
-            //    {
-            //      var dv = nHydrate.Core.SQLGeneration.SQLEmit.GetDetailSQLValue(c);
-            //      if (!string.IsNullOrEmpty(dv))
-            //      {
-            //        sb.AppendLine("if not exists(select * from sys.objects where type_desc = 'DEFAULT_CONSTRAINT' and name = '" + nHydrate.Core.SQLGeneration.SQLEmit.GetDefaultValueConstraintName(c) + "')");
-            //        sb.AppendLine("ALTER TABLE [" + t.GetSQLSchema() + "].[" + t.DatabaseName + "] ADD CONSTRAINT [" + nHydrate.Core.SQLGeneration.SQLEmit.GetDefaultValueConstraintName(c) + "] DEFAULT (" + dv + ") FOR [" + c.DatabaseName + "]");
-            //      }
-            //    }
-
-            //    //Get the index for an indexed field (if one exists)
-            //    var indexName = nHydrate.Core.SQLGeneration.SQLEmit.CreateIndexName(t, c);
-            //    indexName = indexName.ToUpper();
-
-            //    sb.AppendLine("if exists(select s.name as schemaname, o.name as tablename, c.name as columnname, c.is_nullable from sys.objects o inner join sys.columns c on o.object_id = c.object_id inner join sys.schemas s on o.schema_id = s.schema_id where s.name = '" + t.GetSQLSchema() + "' AND o.name = '" + t.DatabaseName + "' and c.name = '" + c.DatabaseName + "' and o.type = 'U' and c.is_nullable = " + (c.AllowNull ? "0" : "1") + ")");
-            //    sb.AppendLine("BEGIN");
-
-            //    if (c.IsIndexed && !c.PrimaryKey && !c.IsUnique)
-            //    {
-            //      sb.AppendLine("if exists(select * from sys.indexes where name = '" + indexName + "')");
-            //      sb.AppendLine("	DROP INDEX [" + indexName + "] ON [" + t.GetSQLSchema() + "].[" + t.DatabaseName + "]");
-            //    }
-
-            //    sb.Append("ALTER TABLE [" + t.GetSQLSchema() + "].[" + t.DatabaseName + "] ALTER COLUMN [" + c.DatabaseName + "] " + c.DatabaseType + " " + (c.AllowNull ? "NULL" : "NOT NULL"));
-
-            //    sb.AppendLine();
-
-            //    if (c.IsIndexed && !c.PrimaryKey && !c.IsUnique)
-            //    {
-            //      sb.AppendLine("if not exists(select * from sys.indexes where name = '" + indexName + "')");
-            //      sb.Append("CREATE INDEX [" + indexName + "] ON [" + t.GetSQLSchema() + "].[" + t.DatabaseName + "] ([" + c.DatabaseName + "])");
-            //    }
-
-            //    sb.AppendLine("END");
-            //  }
-            //  sb.AppendLine("GO");
-            //  sb.AppendLine();
-            //}
         }
 
         #endregion

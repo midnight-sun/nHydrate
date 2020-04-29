@@ -1,32 +1,6 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using nHydrate.Dsl;
 using System.IO;
 using System.Xml;
@@ -34,8 +8,6 @@ using nHydrate.Generator.Common.Util;
 using nHydrate.DslPackage.Forms;
 using System.Windows.Forms;
 using nHydrate.DslPackage.Objects;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 
 namespace nHydrate.DslPackage
 {
@@ -44,7 +16,6 @@ namespace nHydrate.DslPackage
         public bool IsImporting { get; set; }
 
         public nHydrateExplorerToolWindow ModelExplorerToolWindow { get; private set; }
-        //public DocumentationWindow DocumentationWindow { get; private set; }
         public FindWindow FindWindow { get; private set; }
 
         protected override void OnDocumentLoaded()
@@ -98,18 +69,6 @@ namespace nHydrate.DslPackage
                     modelRoot.RemovedViews.Add(node.InnerText);
                 }
 
-                //Stored Procedures
-                foreach (XmlNode node in document.DocumentElement.SelectNodes("storedprocedures/storedprocedure"))
-                {
-                    modelRoot.RemovedStoredProcedures.Add(node.InnerText);
-                }
-
-                //Functions
-                foreach (XmlNode node in document.DocumentElement.SelectNodes("functions/function"))
-                {
-                    modelRoot.RemovedFunctions.Add(node.InnerText);
-                }
-
             }
             #endregion
 
@@ -120,19 +79,9 @@ namespace nHydrate.DslPackage
             var package = this.ServiceProvider.GetService(typeof(nHydratePackage)) as Microsoft.VisualStudio.Modeling.Shell.ModelingPackage;
             if (package != null)
             {
-                //this.DocumentationWindow = package.GetToolWindow(typeof(DocumentationWindow), true) as DocumentationWindow;
                 this.FindWindow = package.GetToolWindow(typeof(FindWindow), true) as FindWindow;
                 this.ModelExplorerToolWindow = package.GetToolWindow(typeof(nHydrateExplorerToolWindow), true) as nHydrateExplorerToolWindow;
-                //this.ModelExplorerToolWindow.SelectionChanged += new EventHandler(ModelExplorerToolWindow_SelectionChanged);
             }
-
-            //Prompt dialog to setup these essential properties
-            if (string.IsNullOrEmpty(modelRoot.CompanyName) || string.IsNullOrEmpty(modelRoot.ProjectName))
-            {
-                var F = new FirstPromptForm(modelRoot);
-                F.ShowDialog();
-            }
-
         }
 
         protected override void OnDocumentSaved(EventArgs e)
@@ -145,16 +94,12 @@ namespace nHydrate.DslPackage
             var cacheFile = Path.Combine(fi.DirectoryName, fi.Name + ".deletetracking");
             if (File.Exists(cacheFile)) File.Delete(cacheFile);
             if ((modelRoot.RemovedTables.Count +
-                modelRoot.RemovedViews.Count +
-                modelRoot.RemovedStoredProcedures.Count +
-                modelRoot.RemovedFunctions.Count) > 0)
+                modelRoot.RemovedViews.Count) > 0)
             {
                 var document = new XmlDocument();
                 document.LoadXml("<root></root>");
                 var tableRoot = XmlHelper.AddElement(document.DocumentElement, "tables") as XmlElement;
                 var viewRoot = XmlHelper.AddElement(document.DocumentElement, "views") as XmlElement;
-                var storedProcedureRoot = XmlHelper.AddElement(document.DocumentElement, "storedprocedures") as XmlElement;
-                var functionRoot = XmlHelper.AddElement(document.DocumentElement, "functions") as XmlElement;
 
                 //Tables
                 foreach (var item in modelRoot.RemovedTables)
@@ -166,18 +111,6 @@ namespace nHydrate.DslPackage
                 foreach (var item in modelRoot.RemovedViews)
                 {
                     XmlHelper.AddElement(viewRoot, "view", item);
-                }
-
-                //Stored Procedures
-                foreach (var item in modelRoot.RemovedStoredProcedures)
-                {
-                    XmlHelper.AddElement(storedProcedureRoot, "storedprocedure", item);
-                }
-
-                //Functions
-                foreach (var item in modelRoot.RemovedFunctions)
-                {
-                    XmlHelper.AddElement(functionRoot, "function", item);
                 }
 
                 document.Save(cacheFile);
@@ -202,15 +135,6 @@ namespace nHydrate.DslPackage
                     relation.ParentEntity.ChildEntities.Remove(relation.ParentEntity.ChildEntities.LastOrDefault());
                 }
             }
-            else if (shape is EntityViewAssociationConnector)
-            {
-                var F = new nHydrate.DslPackage.Forms.RelationshipViewDialog(shape.Diagram.ModelElement as nHydrateModel, shape.Store, (shape as EntityViewAssociationConnector).ModelElement as EntityHasViews);
-                if (F.ShowDialog() != System.Windows.Forms.DialogResult.OK)
-                {
-                    var relation = shape.ModelElement as EntityHasViews;
-                    relation.ParentEntity.ChildViews.Remove(relation.ParentEntity.ChildViews.LastOrDefault());
-                }
-            }
 
         }
 
@@ -224,14 +148,6 @@ namespace nHydrate.DslPackage
                 if (!(shape.Diagram as nHydrateDiagram).IsLoading)
                 {
                     var F = new nHydrate.DslPackage.Forms.RelationshipDialog(shape.Diagram.ModelElement as nHydrateModel, shape.Store, (shape as EntityAssociationConnector).ModelElement as EntityHasEntities);
-                    F.ShowDialog();
-                }
-            }
-            else if (shape is EntityViewAssociationConnector)
-            {
-                if (!(shape.Diagram as nHydrateDiagram).IsLoading)
-                {
-                    var F = new nHydrate.DslPackage.Forms.RelationshipViewDialog(shape.Diagram.ModelElement as nHydrateModel, shape.Store, (shape as EntityViewAssociationConnector).ModelElement as EntityHasViews);
                     F.ShowDialog();
                 }
             }
@@ -255,64 +171,8 @@ namespace nHydrate.DslPackage
         protected override Microsoft.VisualStudio.Modeling.Shell.ModelExplorerTreeContainer CreateTreeContainer()
         {
             var explorer = base.CreateTreeContainer();
-            //var tree = explorer.Controls.ToList<Control>().FirstOrDefault(x => x is TreeView) as TreeView;
-            //tree.LabelEdit = true;
-            //tree.KeyDown += new KeyEventHandler(tree_KeyDown);
-            //tree.AfterLabelEdit += new NodeLabelEditEventHandler(tree_AfterLabelEdit);
-            //tree.BeforeLabelEdit += new NodeLabelEditEventHandler(tree_BeforeLabelEdit);
             return explorer;
         }
-
-        //private void tree_BeforeLabelEdit(object sender, NodeLabelEditEventArgs e)
-        //{
-        //  var element = this.GetSelectedComponents().Cast<Microsoft.VisualStudio.Modeling.ModelElement>().FirstOrDefault();
-        //  if (element == null || !Utils.PropertyExists(element, "Name"))
-        //  {
-        //    e.CancelEdit = true;
-        //    return;
-        //  }
-
-        //  var name = Utils.GetPropertyValue<string>(element, "Name");
-        //  if (name!= e.Node.Text)
-        //  {
-        //    e.CancelEdit = true;
-        //    return;
-        //  }
-
-        //}
-
-        //private void tree_AfterLabelEdit(object sender, NodeLabelEditEventArgs e)
-        //{
-        //  var element = this.GetSelectedComponents().Cast<Microsoft.VisualStudio.Modeling.ModelElement>().FirstOrDefault();
-        //  if (element == null || !Utils.PropertyExists(element, "Name"))
-        //  {
-        //    e.CancelEdit = true;
-        //    return;
-        //  }
-
-        //  var name = Utils.GetPropertyValue<string>(element, "Name");
-        //  if (name != e.Node.Text || string.IsNullOrEmpty(e.Label))
-        //  {
-        //    e.CancelEdit = true;
-        //    return;
-        //  }
-
-        //  using (var transaction = this.TreeContainer.ModelingDocData.Store.TransactionManager.BeginTransaction(Guid.NewGuid().ToString()))
-        //  {
-        //    Utils.SetPropertyValue<string>(element, "Name", e.Label);
-        //    transaction.Commit();
-        //  }
-        //}
-
-        //private void tree_KeyDown(object sender, KeyEventArgs e)
-        //{
-        //  var tree = (sender as TreeView);
-        //  if (e.KeyCode == Keys.F2)
-        //  {
-        //    if (tree.SelectedNode != null)
-        //      tree.SelectedNode.BeginEdit();
-        //  }
-        //}
 
         private TreeNode GetModelElementNode(TreeNodeCollection nodes, Microsoft.VisualStudio.Modeling.ModelElement modelElement)
         {
@@ -385,7 +245,6 @@ namespace nHydrate.DslPackage
 
         protected override int LoadDocData(string fileName, bool isReload)
         {
-            var start = DateTime.Now;
             var key = ProgressHelper.ProgressingStarted("Loading Model...", true, 20);
             try
             {
@@ -411,35 +270,20 @@ namespace nHydrate.DslPackage
             base.Load(fileName, isReload);
 
             modelRoot = this.RootElement as nHydrateModel;
-            var isDirty = 0;
-            this.IsDirty(out isDirty);
+            this.IsDirty(out var isDirty);
             if (modelRoot.IsDirty || (isDirty != 0))
             {
                 this.SetDocDataDirty(0);
             }
         }
 
-        //private void ModelExplorerToolWindow_SelectionChanged(object sender, EventArgs e)
-        //{
-        //    var explorer = sender as nHydrate.DslPackage.nHydrateExplorerToolWindowBase;
-        //    var item = explorer.GetSelectedComponents().Cast<Microsoft.VisualStudio.Modeling.ModelElement>().FirstOrDefault();
-        //    this.DocumentationWindow.SelectElement(item);
-        //}
-
     }
 
     partial class nHydrateDocView
     {
-        //protected override void OnSelectionChanging(EventArgs e)
-        //{
-        //	base.OnSelectionChanging(e);
-        //}
-
         private bool _selecting = false;
-        //protected override void OnSelectionChanged(EventArgs e)
         protected override void OnSelectionChanging(EventArgs e)
         {
-            //base.OnSelectionChanged(e);
             base.OnSelectionChanging(e);
 
             if (!_selecting)
@@ -456,24 +300,6 @@ namespace nHydrate.DslPackage
                         var eshape = element as EntityShape;
                         if (eshape != null)
                         {
-                            //var list = new List<object>();
-                            //list.AddRange(this.SelectedElements.ToList<object>()); //existing selected
-
-                            ////Get all relationships
-                            //var allShapes = this.DocData
-                            //										.Store
-                            //										.ElementDirectory
-                            //										.AllElements
-                            //										.Where(x => x is Microsoft.VisualStudio.Modeling.Diagrams.ShapeElement)
-                            //										.Cast<Microsoft.VisualStudio.Modeling.Diagrams.ShapeElement>()
-                            //										.Where(x => x is EntityAssociationConnector)
-                            //										.Where(x => (x.ModelElement as EntityHasEntities).ParentEntity == eshape.ModelElement || (x.ModelElement as EntityHasEntities).ChildEntity == eshape.ModelElement)
-                            //										.ToList();
-
-                            ////list.AddRange(allShapes);
-                            //list.AddRange(this.DocData.Store.ElementDirectory.AllElements);
-
-                            //this.SelectObjects((uint)list.Count, list.ToArray(), 0);
                         }
                     }
 

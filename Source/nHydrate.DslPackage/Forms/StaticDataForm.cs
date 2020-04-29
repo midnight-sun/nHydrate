@@ -1,38 +1,8 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Linq;
 using System.Data;
-using System.Drawing;
-using System.Collections;
-using System.ComponentModel;
 using System.Windows.Forms;
-using nHydrate.Generator.Models;
-using nHydrate.Generator.Common.GeneratorFramework;
-using System.Collections.Generic;
 using nHydrate.Dsl;
 
 namespace nHydrate.DslPackage.Forms
@@ -43,8 +13,6 @@ namespace nHydrate.DslPackage.Forms
 
         private Entity _entity = null;
         private Microsoft.VisualStudio.Modeling.Store _store = null;
-        private nHydrateModel _model = null;
-        private Microsoft.VisualStudio.Modeling.Shell.ModelingDocData _docData = null;
 
         #endregion
 
@@ -55,20 +23,18 @@ namespace nHydrate.DslPackage.Forms
             InitializeComponent();
         }
 
-        public StaticDataForm(Entity entity, Microsoft.VisualStudio.Modeling.Store store, nHydrateModel model, Microsoft.VisualStudio.Modeling.Shell.ModelingDocData docData)
+        public StaticDataForm(Entity entity, Microsoft.VisualStudio.Modeling.Store store)
             : this()
         {
             _entity = entity;
             _store = store;
-            _model = model;
-            _docData = docData;
             this.LoadData();
         }
 
         private void LoadData()
         {
             this.dataGridView1.Columns.Clear();
-            var fieldList = _entity.Fields.Where(x => !x.IsBinaryType() && x.DataType != DataTypeConstants.Timestamp).ToList();
+            var fieldList = _entity.Fields.Where(x => !x.DataType.IsBinaryType() && x.DataType != DataTypeConstants.Timestamp).ToList();
 
             //Setup Columns
             var dt = new DataTable();
@@ -76,8 +42,6 @@ namespace nHydrate.DslPackage.Forms
             {
                 dt.Columns.Add(f.Name, typeof(string));
             }
-
-            var columnCount = dt.Columns.Count;
 
             //Add Data
             var orderKey = -1;
@@ -104,10 +68,6 @@ namespace nHydrate.DslPackage.Forms
             //Bind the grid
             this.dataGridView1.DataSource = dt;
         }
-
-        #endregion
-
-        #region Class Members
 
         #endregion
 
@@ -210,17 +170,6 @@ namespace nHydrate.DslPackage.Forms
                 jj++;
             }
             Clipboard.SetText(text);
-        }
-
-        private void cmdImport_Click(object sender, EventArgs e)
-        {
-            var F = new ImportStaticDataForm(_entity, _store, _docData);
-            if (F.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                //Bind the grid
-                this.dataGridView1.Columns.Clear();
-                this.dataGridView1.DataSource = F.GetData();
-            }
         }
 
         #endregion

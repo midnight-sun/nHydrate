@@ -1,29 +1,3 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
-using System.Reflection;
 using System.Windows.Forms;
 
 namespace nHydrate.DslPackage.Forms
@@ -34,6 +8,21 @@ namespace nHydrate.DslPackage.Forms
         {
             InitializeComponent();
             lblText.Text = "This product has not been registered. This is a FREE product, but we would like to keep track of its use. Please register below to get your FREE key.";
+
+            pictureBox1.Click += PictureBox1_Click;
+            pictureBox2.Click += PictureBox2_Click;
+        }
+
+        private void PictureBox1_Click(object sender, System.EventArgs e)
+        {
+            //System.Diagnostics.Process.Start("https://www.linkedin.com/groups/2401073/");
+            System.Diagnostics.Process.Start("http://bit.ly/37CK5ip");
+        }
+
+        private void PictureBox2_Click(object sender, System.EventArgs e)
+        {
+            //System.Diagnostics.Process.Start("https://github.com/nHydrate/nHydrate/wiki");
+            System.Diagnostics.Process.Start("http://bit.ly/2sBcVkt");
         }
 
         private void cmdClose_Click(object sender, System.EventArgs e)

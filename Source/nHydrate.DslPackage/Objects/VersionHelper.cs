@@ -1,49 +1,28 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using nHydrate.Generator.Common.GeneratorFramework;
-using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
+using nHydrate.ServerObjects;
 
 namespace nHydrate.DslPackage.Objects
 {
     internal static class VersionHelper
     {
-        public const string SERVICE_URL = "http://www.nhydrate.org/Webservice/MainService.asmx";
+#if DEBUG
+        public const string SERVICE_URL = "http://localhost:58323/";
+#else
+        public const string SERVICE_URL = "http://api.nhydrate.com/";
+#endif
 
         public static bool CanConnect()
         {
-            nHydrate.Generator.Common.nhydrateservice.MainService service = null;
             try
             {
-                service = new nHydrate.Generator.Common.nhydrateservice.MainService();
-                service.Url = SERVICE_URL;
-                return service.IsLive();
+                return Post<object, bool>("", null);
             }
             catch (Exception ex)
             {
@@ -53,14 +32,9 @@ namespace nHydrate.DslPackage.Objects
 
         public static string GetLatestVersion()
         {
-            nHydrate.Generator.Common.nhydrateservice.MainService service = null;
             try
             {
-                service = new nHydrate.Generator.Common.nhydrateservice.MainService();
-                service.Url = SERVICE_URL;
-                var version = service.GetLatestVersion3(AddinAppData.Instance.Key, GetCurrentVersion());
-                //var version = service.GetLatestVersion();
-                return version.Version;
+                return Post<object, ResultModel>("version", null)?.Text;
             }
             catch (Exception ex)
             {
@@ -108,7 +82,7 @@ namespace nHydrate.DslPackage.Objects
             try
             {
                 return (string.IsNullOrEmpty(nHydrate.Generator.Common.GeneratorFramework.AddinAppData.Instance.Key) &&
-                    (DateTime.Now.Subtract(AddinAppData.Instance.LastNag).TotalDays >= 7));
+                    (DateTime.Now.Subtract(AddinAppData.Instance.LastNag).TotalDays >= 3));
             }
             catch (Exception ex)
             {
@@ -148,5 +122,108 @@ namespace nHydrate.DslPackage.Objects
 
         }
 
+        public static ResultModel AuthenticateUser(LoginModel model)
+        {
+            var result = Post<LoginModel, ResultModel>("login", model);
+            if (result == null) result = new ResultModel { Success = false, Text = "An error occurred." };
+            return result;
+        }
+
+        public static void ResetStatistics(string key, bool allow)
+        {
+            //TODO
+        }
+
+        public static ResultModel RegisterUser(UserAccount model)
+        {
+            return Post<UserAccount, ResultModel>("register", model);
+        }
+
+        public static List<IdTextModel> GetCountries()
+        {
+            return Get<List<IdTextModel>>("countries");
+        }
+
+        public static void LogStats(GenStatModel model)
+        {
+            try
+            {
+                var result = Post<GenStatModel, ResultModel>("log-stats", model);
+            }
+            catch (Exception ex)
+            {
+                //Do nothing
+            }
+        }
+
+        private static R Post<T, R>(string path, T model)
+            where T : new()
+            where R : new()
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri(SERVICE_URL);
+
+                    // Add an Accept header for JSON format.
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                    // List data response.
+                    var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
+                    var response = client.PostAsync(path, content).Result;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Parse the response body.
+                        var result = response.Content.ReadAsStringAsync().Result;  //Make sure to add a reference to System.Net.Http.Formatting.dll
+                        return JsonConvert.DeserializeObject<R>(result);
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0} ({1})", (int)response.StatusCode, response.ReasonPhrase);
+                    }
+                    return default(R);
+                }
+            }
+            catch (Exception ex)
+            {
+                //throw;
+                return default(R);
+            }
+        }
+
+        private static R Get<R>(string path)
+            where R : new()
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri(SERVICE_URL);
+
+                    // Add an Accept header for JSON format.
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                    // List data response.
+                    var response = client.GetAsync(path).Result;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Parse the response body.
+                        var result = response.Content.ReadAsStringAsync().Result;  //Make sure to add a reference to System.Net.Http.Formatting.dll
+                        return JsonConvert.DeserializeObject<R>(result);
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0} ({1})", (int)response.StatusCode, response.ReasonPhrase);
+                    }
+                    return default(R);
+                }
+            }
+            catch (Exception ex)
+            {
+                //throw;
+                return default(R);
+            }
+        }
     }
 }

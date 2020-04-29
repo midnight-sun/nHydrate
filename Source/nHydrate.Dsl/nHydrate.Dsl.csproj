@@ -15,7 +15,7 @@
     <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
     <AssemblyOriginatorKeyMode>File</AssemblyOriginatorKeyMode>
     <SignAssembly>true</SignAssembly>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <GacTargetOutput>false</GacTargetOutput>
     <StartupObject>
     </StartupObject>
@@ -129,6 +129,8 @@
     <Reference Include="System.Design" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Drawing.Design" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.XML" />
     <Reference Include="WindowsBase">
@@ -143,84 +145,48 @@
     <Compile Include="Custom\DebugHelper.cs" />
     <Compile Include="Custom\SQLFileManagement.cs" />
     <Compile Include="Design\Converters\DatatypeConverter.cs" />
-    <Compile Include="Design\Converters\VisibilityTypeEnumConverter.cs" />
-    <Compile Include="Design\Converters\SQLConverter.cs" />
     <Compile Include="Design\Converters\EntityFieldConverter.cs" />
-    <Compile Include="Design\Converters\ModuleRuleInclusionEnumConverter.cs" />
-    <Compile Include="Design\Converters\ModuleConverter.cs" />
-    <Compile Include="Design\Converters\RangeMaxConverter.cs" />
-    <Compile Include="Design\Converters\RangeMinConverter.cs" />
     <Compile Include="Design\Converters\TextDecimalScaleConverter.cs" />
     <Compile Include="Design\Converters\TextLengthConverter.cs" />
     <Compile Include="Design\Converters\VersionConverter.cs" />
-    <Compile Include="Design\Editors\SecurityFunctionEditor.cs" />
-    <Compile Include="Design\Editors\OutputTargetEditor.cs" />
     <Compile Include="Design\Editors\EntityFieldEditor.cs" />
-    <Compile Include="Design\Editors\CopyrightEditor.cs" />
-    <Compile Include="Design\Editors\ModuleEditor.cs" />
     <Compile Include="Design\Editors\SQLEditor.cs" />
-    <Compile Include="Design\Forms\SecurityFunctionForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Design\Forms\SecurityFunctionForm.Designer.cs">
-      <DependentUpon>SecurityFunctionForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Design\Forms\CopyrightForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Design\Forms\CopyrightForm.Designer.cs">
-      <DependentUpon>CopyrightForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Design\Forms\OutputTargetForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Design\Forms\OutputTargetForm.Designer.cs">
-      <DependentUpon>OutputTargetForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="Design\Forms\SQLForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Design\Forms\SQLForm.Designer.cs">
       <DependentUpon>SQLForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="GeneratedCode\Serializer1.cs">
+    <Compile Include="GeneratedCode\HelpKeywordHelper.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>HelpKeywordHelper.tt</DependentUpon>
+    </Compile>
+    <Compile Include="GeneratedCode\PropertiesGrid.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>PropertiesGrid.tt</DependentUpon>
+    </Compile>
+    <Compile Include="GeneratedCode\Serializer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Serializer.tt</DependentUpon>
     </Compile>
-    <Compile Include="Objects\ModelerOptions.cs" />
-    <Compile Include="Objects\PrecedenceUtil.cs" />
-    <Compile Include="Objects\RefactorTableCombine.cs" />
-    <Compile Include="Objects\IRefactor.cs" />
-    <Compile Include="Objects\RefactorTableSplit.cs" />
-    <Compile Include="Objects\UserDefinedScript.cs" />
-    <Compile Include="Overrides\Composite.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Overrides\CompositeField.cs">
-      <SubType>Code</SubType>
+    <Compile Include="GeneratedCode\Shapes.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Shapes.tt</DependentUpon>
     </Compile>
     <Compile Include="Overrides\IFieldContainer.cs" />
     <Compile Include="Overrides\IField.cs" />
     <Compile Include="Overrides\IDatabaseEntity.cs" />
     <Compile Include="Overrides\IContainerParent.cs" />
-    <Compile Include="Overrides\EntityViewAssociationConnector.cs" />
-    <Compile Include="Overrides\EntityHasViews.cs" />
-    <Compile Include="Overrides\nHydrateToolboxHelper.cs" />
-    <Compile Include="Overrides\FunctionShape.cs" />
-    <Compile Include="Overrides\ViewSerializer.cs" />
     <Compile Include="Overrides\IndexColumn.cs" />
     <Compile Include="Overrides\Index.cs" />
-    <Compile Include="Overrides\FunctionField.cs" />
-    <Compile Include="Overrides\FunctionParameter.cs" />
-    <Compile Include="Overrides\EntityInheritsEntity.cs" />
     <Compile Include="Overrides\Entity.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Overrides\EntityAssociationConnector.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Overrides\EntityCompositeShape.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Overrides\EntityHasEntities.cs">
@@ -235,10 +201,6 @@
     <Compile Include="Overrides\Field.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Overrides\Function.cs" />
-    <Compile Include="Overrides\IModuleLink.cs" />
-    <Compile Include="Overrides\IPrecedence.cs" />
-    <Compile Include="Overrides\Module.cs" />
     <Compile Include="Overrides\nHydrateDiagram.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -247,18 +209,6 @@
     </Compile>
     <Compile Include="Overrides\nHydrateSerializationHelper.cs" />
     <Compile Include="Overrides\StaticData.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Overrides\StoredProcedure.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Overrides\StoredProcedureField.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Overrides\StoredProcedureParameter.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Overrides\StoredProcedureShape.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Overrides\View.cs">
@@ -276,20 +226,13 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <Generator>ResXFileCodeGenerator</Generator>
     </Compile>
-    <Compile Include="Validation\CompositeValidation.cs" />
     <Compile Include="Validation\IndexColumnValidation.cs" />
     <Compile Include="Validation\IndexValidation.cs" />
-    <Compile Include="Validation\FunctionFieldValidation.cs" />
     <Compile Include="Validation\ViewFieldValidation.cs" />
-    <Compile Include="Validation\FunctionParameterValidation.cs" />
-    <Compile Include="Validation\StoredProcedureFieldValidation.cs" />
-    <Compile Include="Validation\FunctionValidation.cs" />
-    <Compile Include="Validation\StoredProcedureParameterValidation.cs" />
     <Compile Include="Validation\ViewValidation.cs" />
     <Compile Include="Validation\EntityValidation.cs" />
     <Compile Include="Validation\FieldValidation.cs" />
     <Compile Include="Validation\nHydrateModel.cs" />
-    <Compile Include="Validation\StoredProcedureValidation.cs" />
     <Compile Include="Validation\ValidationHelper.cs" />
     <None Include="GeneratedCode\nHydrateSchema.xsd">
       <AutoGen>True</AutoGen>
@@ -333,32 +276,15 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>DomainRelationships.tt</DependentUpon>
     </Compile>
-    <Compile Include="GeneratedCode\HelpKeywordHelper.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>HelpKeywordHelper.tt</DependentUpon>
-    </Compile>
     <Compile Include="GeneratedCode\MultiplicityValidation.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>MultiplicityValidation.tt</DependentUpon>
     </Compile>
-    <Compile Include="GeneratedCode\PropertiesGrid.cs">
-      <DependentUpon>PropertiesGrid.tt</DependentUpon>
-      <SubType>Code</SubType>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-    </Compile>
     <Compile Include="GeneratedCode\SerializationHelper.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>SerializationHelper.tt</DependentUpon>
-    </Compile>
-    <Compile Include="GeneratedCode\Shapes.cs">
-      <DependentUpon>Shapes.tt</DependentUpon>
-      <SubType>Code</SubType>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
     </Compile>
     <Compile Include="GeneratedCode\ToolboxHelper.cs">
       <DependentUpon>ToolboxHelper.tt</DependentUpon>
@@ -377,26 +303,16 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Versioning.txt" />
-    <EmbeddedResource Include="Design\Forms\SecurityFunctionForm.resx">
-      <DependentUpon>SecurityFunctionForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Design\Forms\OutputTargetForm.resx">
-      <DependentUpon>OutputTargetForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="GeneratedCode\DomainModelResx.resx">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>DomainModelResx.tt</DependentUpon>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\fieldcalculated.png" />
     <Content Include="Resources\function.bmp" />
     <Content Include="Resources\nhydrate32-boxed.ico" />
     <Content Include="Resources\storedproc.bmp" />
     <Content Include="Resources\view.bmp" />
-    <EmbeddedResource Include="Design\Forms\CopyrightForm.resx">
-      <DependentUpon>CopyrightForm.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -409,6 +325,7 @@
     <EmbeddedResource Include="Resources\fkey.png" />
     <EmbeddedResource Include="Design\Forms\SQLForm.resx">
       <DependentUpon>SQLForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\nhydrate-background.png" />
     <EmbeddedResource Include="Resources\parameter.png" />
@@ -474,7 +391,7 @@
     </None>
     <None Include="GeneratedCode\Serializer.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Serializer1.cs</LastGenOutput>
+      <LastGenOutput>Serializer.cs</LastGenOutput>
     </None>
     <None Include="GeneratedCode\Shapes.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

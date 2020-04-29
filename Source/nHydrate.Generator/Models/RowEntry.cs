@@ -1,32 +1,8 @@
-#region Copyright (c) 2006-2018 nHydrate.org, All Rights Reserved
-// -------------------------------------------------------------------------- *
-//                           NHYDRATE.ORG                                     *
-//              Copyright (c) 2006-2018 All Rights reserved                   *
-//                                                                            *
-//                                                                            *
-// Permission is hereby granted, free of charge, to any person obtaining a    *
-// copy of this software and associated documentation files (the "Software"), *
-// to deal in the Software without restriction, including without limitation  *
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
-// and/or sell copies of the Software, and to permit persons to whom the      *
-// Software is furnished to do so, subject to the following conditions:       *
-//                                                                            *
-// The above copyright notice and this permission notice shall be included    *
-// in all copies or substantial portions of the Software.                     *
-//                                                                            *
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,            *
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES            *
-// OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  *
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
-// CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
-// -------------------------------------------------------------------------- *
-#endregion
+#pragma warning disable 0168
 using System;
+using System.Linq;
 using System.Xml;
 using nHydrate.Generator.Common;
-using nHydrate.Generator.Common.GeneratorFramework;
 using nHydrate.Generator.Common.Util;
 
 namespace nHydrate.Generator.Models
@@ -35,8 +11,6 @@ namespace nHydrate.Generator.Models
     {
         #region Member Variables
 
-        protected CellEntryCollection _cellEntries = null;
-
         #endregion
 
         #region Constructor
@@ -44,18 +18,29 @@ namespace nHydrate.Generator.Models
         public RowEntry(INHydrateModelObject root)
             : base(root)
         {
-            _cellEntries = new CellEntryCollection(this.Root);
+            this.Initialize();
+        }
+
+        public RowEntry()
+        {
+            //Only needed for BaseModelCollection<T>
         }
 
         #endregion
 
+        private void Initialize()
+        {
+            CellEntries = new CellEntryCollection(this.Root);
+        }
+
+        protected override void OnRootReset(System.EventArgs e)
+        {
+            this.Initialize();
+        }
+
         #region Property Implementations
 
-        public CellEntryCollection CellEntries
-        {
-            get { return _cellEntries; }
-            set { _cellEntries = value; }
-        }
+        public CellEntryCollection CellEntries { get; set; } = null;
 
         #endregion
 
@@ -65,12 +50,10 @@ namespace nHydrate.Generator.Models
         {
             try
             {
-                var name = string.Empty;
-                var description = string.Empty;
                 foreach (CellEntry cellEntry in this.CellEntries)
                 {
                     var column = cellEntry.ColumnRef.Object as Column;
-                    if (column != null && column.IsIntegerType)
+                    if (column != null && column.DataType.IsIntegerType())
                     {
                         if (column.Name.ToLower().Contains("order") || column.Name.ToLower().Contains("sort"))
                             return cellEntry.Value;
@@ -122,7 +105,6 @@ namespace nHydrate.Generator.Models
                 foreach (CellEntry cellEntry in this.CellEntries)
                 {
                     var column = cellEntry.ColumnRef.Object as Column;
-                    var pk = table.PrimaryKeyColumns.FirstOrDefault<Column>() as Column;
                     if (column != null)
                     {
                         if (StringHelper.Match(column.Name, "name"))
@@ -199,8 +181,6 @@ namespace nHydrate.Generator.Models
         {
             var oDoc = node.OwnerDocument;
 
-            //XmlHelper.AddAttribute(node, "key", this.Key);
-
             var cellEntriesNode = oDoc.CreateElement("cl");
             CellEntries.XmlAppend(cellEntriesNode);
             node.AppendChild(cellEntriesNode);
@@ -209,24 +189,12 @@ namespace nHydrate.Generator.Models
 
         public override void XmlLoad(XmlNode node)
         {
-            _key = XmlHelper.GetAttributeValue(node, "key", string.Empty);
+            this.Key = XmlHelper.GetAttributeValue(node, "key", string.Empty);
             var cellEntriesNode = node.SelectSingleNode("cellEntries"); //deprecated, use "cl"
             if (cellEntriesNode == null) cellEntriesNode = node.SelectSingleNode("cl");
             this.CellEntries.XmlLoad(cellEntriesNode);
-
-            this.Dirty = false;
         }
         #endregion
-
-        public override bool Equals(object obj)
-        {
-            return base.Equals(obj);
-        }
-
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
 
     }
 }
